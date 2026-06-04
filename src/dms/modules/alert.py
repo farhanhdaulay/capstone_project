@@ -34,7 +34,8 @@ logger = logging.getLogger(__name__)
 try:
     import Jetson.GPIO as GPIO   # type: ignore
     _GPIO_OK = True
-except ImportError:
+except (ImportError, RuntimeError):
+    GPIO = None
     _GPIO_OK = False
     logger.warning("Jetson.GPIO not available -- alert will run in MOCK mode.")
 
