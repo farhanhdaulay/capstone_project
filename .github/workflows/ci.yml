@@ -39,7 +39,7 @@ jobs:
       - name: Install test deps
         run: |
           pip install pytest==8.3.3 pytest-cov==5.0.0 pytest-mock==3.14.0 opencv-python==4.10.0.84 onnxruntime==1.17.1 "numpy<2"
-      - name: Run pytest with coverage gate (=90%)
+      - name: Run pytest with coverage gate (>=90%)
         run: |
           pytest tests/ \
           --ignore tests/integration \
@@ -93,7 +93,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.ci
+          file: Dockerfile
           platforms: linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}:sha-${{ steps.vars.outputs.sha_short }}
@@ -110,7 +110,7 @@ jobs:
       - name: Login to GHCR on Jetson
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Install pytest deps
-        run: pip install --user pytest==8.3.3 paho-mqtt==2.1.0
+        run: pip install --user pytest==8.3.3
       - name: Run E2E integration test
         env:
           SHA_SHORT: ${{ github.sha }}
