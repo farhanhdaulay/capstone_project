@@ -68,9 +68,6 @@ RUN echo '/usr/local/cuda/lib64' > /etc/ld.so.conf.d/cuda.conf && ldconfig
 WORKDIR /app
 COPY src/ /app/src/
 RUN mkdir -p /app/models
-# Copy the ONNX models and the compiled TensorRT engine from the builder
-COPY --from=builder /build/models/*.onnx /app/models/
-COPY --from=builder /build/models/yolo26n.engine /app/models/
 
 # Tell Python where to find the 'dms' module
 ENV PYTHONPATH=/app/src
