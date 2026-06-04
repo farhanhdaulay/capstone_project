@@ -1,0 +1,82 @@
+[project]
+name = "driver_monitoring_system"
+version = "1"
+description = "Default template for PDM package"
+authors = [
+    {name = "Farhan Hikmatullah Daulay, Kishore Sridhar", email = "g11451002@o365.ttu.edu.tw, g11451003@o365.ttu.edu.tw"},
+]
+
+dependencies = ["ultralytics>=8.4.41", "onnxruntime<1.22", "torch>=2.7.1", "torchvision>=0.22.1", "numpy==1.26.4", "opencv-python-headless>=4.11.0.86", "smbus2>=0.6.1", "pip>=26.1", "Pillow", "pyyaml", "tqdm", "psutil", "filterpy", "opencv-contrib-python-headless>=4.11.0.86", "jetson-GPIO>=2.1.12"]
+requires-python = "==3.10.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+[tool.pdm]
+distribution = false
+
+[tool.pdm.options]
+pythonpath = ["src"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pdm.resolution]
+excludes = [
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "onnxruntime-gpu",
+    "triton",
+    "sympy",
+    "cuda-toolkit",
+    "cuda-bindings",
+    "cuda-pathfinder",
+    "nvidia-cublas",
+    "nvidia-cuda-cupti",
+    "nvidia-cuda-nvrtc",
+    "nvidia-cuda-runtime",
+    "nvidia-cudnn-cu13",
+    "nvidia-cufft",
+    "nvidia-cufile",
+    "nvidia-curand",
+    "nvidia-cusolver",
+    "nvidia-cusparse",
+    "nvidia-cusparselt-cu13",
+    "nvidia-nccl-cu13",
+    "nvidia-nvjitlink",
+    "nvidia-nvshmem-cu13",
+    "nvidia-nvtx"
+]
+
+[tool.pdm.dev-dependencies]
+test = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-mock>=3.11",
+]
+quality = [
+    "ruff>=0.6",
+    "bandit>=1.7",
+]
+
+[tool.pdm.scripts]
+# Define quick commands to run the CI gates locally
+test-cov = "pytest --cov=src --cov-report=term-missing --cov-fail-under=90"
+lint = "ruff check src tests"
+security = "bandit -r src -ll"
+ci = {composite = ["lint", "security", "test-cov"]}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["src"]
+# Ignore init files from coverage math
+omit = ["src/__init__.py", "src/dms/__init__.py", "src/dms/modules/__init__.py", "src/dms/main.py", "src/dms/live_stream.py", "tests/*"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true

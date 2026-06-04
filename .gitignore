@@ -1,0 +1,27 @@
+*.py[codz]
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.pdm-python
+
+# Virtual Environments
+.venv/
+.env
+
+# Testing and Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# AI Models and Weights
+*.pt
+*.onnx
+
+# Datasets and Runtime Logs
+data/
+logs/
+
+# OS and Editor
+.DS_Store
+.vscode/

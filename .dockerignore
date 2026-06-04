@@ -1,0 +1,14 @@
+# Git
+.git
+.gitignore
+
+# Python caching and environments
+__pycache__/
+*.pyc
+.venv/
+.pdm-python
+.python-version
+
+# Local data and logs (these will be mounted via Volumes later)
+data/
+logs/
