@@ -38,7 +38,7 @@ jobs:
           cache: pip
       - name: Install test deps
         run: |
-          pip install pytest==8.3.3 pytest-cov==5.0.0 pytest-mock==3.14.0 opencv-python==4.10.0.84 onnxruntime==1.17.1
+          pip install pytest==8.3.3 pytest-cov==5.0.0 pytest-mock==3.14.0 opencv-python==4.10.0.84 onnxruntime==1.17.1 "numpy<2"
       - name: Run pytest with coverage gate (=90%)
         run: |
           pytest tests/ \
