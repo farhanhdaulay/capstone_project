@@ -24,4 +24,5 @@ logs/
 
 # OS and Editor
 .DS_Store
-.vscode/
+.vscode/*.pth
+testing_hardware/
