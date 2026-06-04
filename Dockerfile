@@ -32,10 +32,6 @@ RUN ORT_VER=$(python3 -c "import onnxruntime; print(onnxruntime.__version__)") &
     echo "Wheel-Version: 1.0\nGenerator: lab10-stub\nRoot-Is-Purelib: true" > "$STUB/WHEEL" && \
     : > "$STUB/RECORD"
 
-# 3. Copy your entire models directory and compile YOLO26 into a TensorRT engine
-COPY models/ /build/models/
-RUN cd /build/models && \
-    python3 -c "from ultralytics import YOLO; YOLO('yolo26n.pt', task='detect').export(format='engine', imgsz=320, half=True, opset=19)"
 
 # 4. Stage the native CUDA and cuDNN shared libraries (.so files)
 RUN mkdir -p /staging_libs/cuda /staging_libs/aarch64 && \
