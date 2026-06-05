@@ -49,12 +49,6 @@ jobs:
           --cov-report=html \
           --cov-fail-under=90 \
           -v
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: coverage-html
-          path: htmlcov/
 
   security-scan:
     name: Bandit + pip-audit
@@ -66,6 +60,7 @@ jobs:
         with:
           python-version: "3.10"
           cache: pip
+      - run: python -m pip install --upgrade pip
       - run: pip install bandit==1.7.10 pip-audit==2.7.3
       - name: Bandit (Python SAST)
         run: bandit -r src/ -ll
@@ -78,7 +73,7 @@ jobs:
     needs: [test, security-scan]
     steps:
       - uses: actions/checkout@v5
-      
+        
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         
@@ -89,31 +84,51 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
           
-      - name: Extract short SHA
+      - name: Process Environment Variables
         id: vars
-        run: echo "sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
-        
+        run: |
+          echo "sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+          echo "repo_lowercase=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          
       - name: Create Cache Directories
         run: mkdir -p /home/jetson/.buildx-cache /home/jetson/.buildx-cache-new 
-         
-      - name: Build and push
+           
+      # PHASE 1: BUILD AND LOAD ONLY (NO PUSH)
+      - name: Build and Load into Jetson
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
           platforms: linux/arm64
-          push: true
-          tags: ghcr.io/${{ github.repository }}:sha-${{ steps.vars.outputs.sha_short }}
-          # 1. Read from the established cache
+          push: false   # CRITICAL: We do not push here anymore
+          load: true    # CRITICAL: We load it directly into the Jetson's local memory
+          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}:sha-${{ steps.vars.outputs.sha_short }}
           cache-from: type=local,src=/home/jetson/.buildx-cache
-          # 2. Write the new cache to a temporary folder
           cache-to: type=local,dest=/home/jetson/.buildx-cache-new,mode=max
 
-      # 3. CRITICAL: Delete the old cache and promote the new one
+      # PHASE 2: SAVE CACHE IMMEDIATELY
+      # If the network fails later, your 4-hour build is already saved!
       - name: Swap local cache (Prevents Disk Full Error)
         run: |
           rm -rf /home/jetson/.buildx-cache
           mv /home/jetson/.buildx-cache-new /home/jetson/.buildx-cache
+
+      # PHASE 3: BRUTE FORCE PUSH
+      # This script will violently retry pushing up to 10 times, bypassing Docker's weak limits.
+      - name: Brute-Force Push to GHCR
+        run: |
+          IMAGE="ghcr.io/${{ steps.vars.outputs.repo_lowercase }}:sha-${{ steps.vars.outputs.sha_short }}"
+          echo "Attempting to push $IMAGE..."
+          for i in {1..10}; do
+            echo "Push attempt $i of 10..."
+            docker push $IMAGE && echo "Push successful!" && break
+            echo "Network dropped. Waiting 15 seconds before retrying..."
+            sleep 15
+            if [ $i -eq 10 ]; then
+              echo "Failed to push after 10 attempts."
+              exit 1
+            fi
+          done
 
   integration-test:
     name: Integration test (Jetson)
@@ -127,9 +142,8 @@ jobs:
       - name: Install pytest deps
         run: pip install --user pytest==8.3.3
       - name: Run E2E integration test
-        env:
-          SHA_SHORT: ${{ github.sha }}
         run: |
-          SHA=$(echo "$SHA_SHORT" | cut -c1-7)
-          IMG="ghcr.io/${{ github.repository }}:sha-$SHA"
+          SHA=$(git rev-parse --short=7 HEAD)
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMG="ghcr.io/$REPO:sha-$SHA"
           IMAGE="$IMG" pytest tests/integration/test_jetson_e2e.py -v
