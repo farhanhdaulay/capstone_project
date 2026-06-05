@@ -78,17 +78,21 @@ jobs:
     needs: [test, security-scan]
     steps:
       - uses: actions/checkout@v5
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Extract short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+        
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -97,8 +101,16 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}:sha-${{ steps.vars.outputs.sha_short }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # 1. Read from the established cache
+          cache-from: type=local,src=/home/jetson/.buildx-cache
+          # 2. Write the new cache to a temporary folder
+          cache-to: type=local,dest=/home/jetson/.buildx-cache-new,mode=max
+
+      # 3. CRITICAL: Delete the old cache and promote the new one
+      - name: Swap local cache (Prevents Disk Full Error)
+        run: |
+          rm -rf /home/jetson/.buildx-cache
+          mv /home/jetson/.buildx-cache-new /home/jetson/.buildx-cache
 
   integration-test:
     name: Integration test (Jetson)
