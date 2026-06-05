@@ -93,6 +93,9 @@ jobs:
         id: vars
         run: echo "sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
         
+      - name: Create Cache Directories
+        run: mkdir -p /home/jetson/.buildx-cache /home/jetson/.buildx-cache-new 
+         
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
