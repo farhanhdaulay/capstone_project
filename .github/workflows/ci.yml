@@ -87,7 +87,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
           
       - name: Extract short SHA
         id: vars
@@ -120,7 +120,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Login to GHCR on Jetson
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Install pytest deps
         run: pip install --user pytest==8.3.3
       - name: Run E2E integration test
