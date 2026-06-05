@@ -4,8 +4,9 @@
 FROM dustynv/pytorch:2.7-r36.4.0 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 && apt-get clean && rm -rf /var/lib/apt/lists/*
-
+RUN apt-get update -o Acquire::Retries=5 && \
+    apt-get install -y --no-install-recommends -o Acquire::Retries=5 libgl1-mesa-glx libglib2.0-0 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 # Override dustynv's private pip mirror to use public PyPI
 ENV PIP_INDEX_URL=https://pypi.org/simple/
 ENV PIP_EXTRA_INDEX_URL=
