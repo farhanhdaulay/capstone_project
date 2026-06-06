@@ -25,6 +25,7 @@ def inference_container():
         # REMOVED --rm so we can actually read the crash logs!
         "--name", CONTAINER_NAME,
         "--runtime", "nvidia",
+        "--privileged",
         "-v", "dms-models:/opt/models", 
         "--device", "/dev/video0:/dev/video0",
         "--device", "/dev/video1:/dev/video1",
