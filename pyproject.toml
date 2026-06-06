@@ -66,6 +66,8 @@ extend-exclude = [".venv", ".pdm-build", "testing_hardware"]
 # Define quick commands to run the CI gates locally
 test-cov = "pytest --cov=src --cov-report=term-missing --cov-fail-under=90"
 lint = "ruff check src tests"
+check = "ruff check src/"
+format = "ruff format src/"
 security = "bandit -r src -ll"
 ci = {composite = ["lint", "security", "test-cov"]}
 

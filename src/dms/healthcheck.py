@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Kishore Sridhar & Farhan Hikmatullah Daulay
-# Tatung University 14210 AI????
-"""src/healthcheck.py � minimal /healthz endpoint for the DMS container.
+# Tatung University 14210 AI實務專題
+"""src/healthcheck.py — minimal /healthz endpoint for the DMS container.
 Started as a background thread by main() so every container gets the
 endpoint for free. Returns JSON with status, model_version, power_mode.
 """

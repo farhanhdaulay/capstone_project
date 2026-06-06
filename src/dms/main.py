@@ -31,16 +31,14 @@ import cv2
 import numpy as np
 from dms.modules.alert         import AlertController
 from dms.modules.state_machine import DMSStateMachine, DMSEvent
+import dms.config as cfg
+from dms.modules.camera import Camera
 
 # Allow `python src/dms/main.py` as a fallback
 if __name__ == "__main__" and __package__ is None:
     _src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if _src_dir not in sys.path:
         sys.path.insert(0, _src_dir)
-
-import dms.config as cfg
-
-from dms.modules.camera import Camera
 
 
 def _safe_import(module_path: str, class_name: str):

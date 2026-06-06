@@ -21,6 +21,7 @@ ALERT_MOCK = False -> drives real hardware.
 
 from __future__ import annotations
 
+import math
 import logging
 import os
 import threading
@@ -147,32 +148,74 @@ class AlertController:
         self._set_pin(self._pin_vib, False)
         self._stop_vib.clear()
 
-    def _beep_tone(self, freq: float = 1000.0, duration: float = 0.35,
-                   sample_rate: int = 44100) -> None:
-        t    = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
-        wave = (0.6 * np.sin(2 * np.pi * freq * t)).astype(np.float32)
-        sd.play(wave, samplerate=sample_rate, blocking=True)
+    def _beep_siren(self, sample_rate: int = 44100) -> None:
+        """Two-tone siren using sounddevice -- no files needed."""
+        duration = 0.35
+        for freq in (1200.0, 800.0):
+            if self._stop_sound.is_set():
+                return
+            n    = int(sample_rate * duration)
+            wave = np.array([
+                min(i, n - i, 500) / 500.0
+                * 0.7 * math.sin(2 * math.pi * freq * i / sample_rate)
+                for i in range(n)
+            ], dtype=np.float32)
+            sd.play(wave, samplerate=sample_rate, blocking=True)
+    
+    def _make_alert_wav(self, path: str = "/tmp/dms_alert.wav") -> str:
+        """Generate a two-tone siren WAV file and return its path."""
+        import wave
+        import struct
+        sample_rate = 44100
+        duration    = 0.4
+        tones       = [1200.0, 800.0]
+        repeats     = 3
+    
+        frames = []
+        for _ in range(repeats):
+            for freq in tones:
+                n = int(sample_rate * duration)
+                for i in range(n):
+                    env = min(i, n - i, 500) / 500.0
+                    val = env * 0.8 * math.sin(2 * math.pi * freq * i / sample_rate)
+                    frames.append(struct.pack("<h", int(val * 32767)))
+    
+        with wave.open(path, "w") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(b"".join(frames))
+        return path
 
     def _play_sound_loop(self) -> None:
         """Loop alarm sound until stop event -- runs in background thread."""
+        alert_wav = self._sound_file
+        if not alert_wav or not os.path.isfile(alert_wav):
+            try:
+                alert_wav = self._make_alert_wav()
+            except Exception as exc:
+                logger.error("Could not generate alert WAV: %s", exc)
+                alert_wav = None
+    
         while not self._stop_sound.is_set():
             if self._mock:
                 logger.info("[ALERT SOUND] CRITICAL alarm")
                 time.sleep(0.8)
                 continue
-            if self._sound_file and os.path.isfile(self._sound_file):
-                subprocess.run(["aplay", "-q", self._sound_file], stderr=subprocess.DEVNULL, check=False)
-            elif _SOUND_OK:
+    
+            if _SOUND_OK:
                 try:
-                    self._beep_tone(freq=1000.0, duration=0.35)
-                    time.sleep(0.10)
-                    self._beep_tone(freq=880.0,  duration=0.35)
-                    time.sleep(0.10)
+                    self._beep_siren()
+                    continue
                 except Exception as exc:
-                    logger.error("Sound error: %s", exc)
-                    time.sleep(0.5)
+                    logger.error("sounddevice error: %s", exc)
+    
+            if alert_wav and os.path.isfile(alert_wav):
+                subprocess.run(
+                    ["aplay", "-q", alert_wav],
+                    stderr=subprocess.DEVNULL, check=False
+                )
             else:
-                os.system("aplay -q /usr/share/sounds/alsa/Front_Center.wav 2>/dev/null")
                 time.sleep(0.8)
 
     def _stop_sound_alarm(self) -> None:

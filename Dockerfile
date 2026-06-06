@@ -43,3 +43,5 @@ ENV PYTHONPATH=/app/src
 
 # 7. Command to start your driver monitoring system
 CMD ["python3", "src/dms/main.py", "--no-window"]
+
+EXPOSE 8000
