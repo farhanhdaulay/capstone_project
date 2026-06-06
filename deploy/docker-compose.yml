@@ -13,6 +13,9 @@ services:
       - ./models:/app/models
       - /var/lib/nvpmodel/status:/var/lib/nvpmodel/status:ro
       - /etc/nvpmodel.conf:/etc/nvpmodel.conf:ro
+    ports:
+      - "8000:8000" # Exposes the Healthcheck to the Jetson host
+      - "5000:5000" # Exposes the Video Stream so you can view it in your browser
     environment:
       MODEL_VERSION: ${IMAGE_TAG}
       HEALTHZ_PORT: "8000"
