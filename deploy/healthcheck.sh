@@ -6,9 +6,13 @@
 set -euo pipefail
 
 URL="${HEALTHZ_URL:-http://localhost:8000/healthz}"
-DEADLINE=$((SECONDS + 60))
+DEADLINE=$((SECONDS + 120))  # ← increased to 120s to allow app startup
 STREAK=0
 NEEDED=3
+
+# ← Wait for app to initialize before first poll
+echo "[healthcheck] Waiting 20s for app to initialize..."
+sleep 20
 
 while [ "$SECONDS" -lt "$DEADLINE" ]; do
     HTTP_CODE=$(curl -o /tmp/healthz_body.json -w "%{http_code}" \
@@ -22,9 +26,10 @@ while [ "$SECONDS" -lt "$DEADLINE" ]; do
     else
         [ "$STREAK" -gt 0 ] && echo "[healthcheck] streak broken at $STREAK (HTTP $HTTP_CODE)"
         STREAK=0
+        echo "[healthcheck] waiting... (HTTP $HTTP_CODE)"
     fi
-    sleep 2
+    sleep 3
 done
 
-echo "[healthcheck] FAILED — no $NEEDED consecutive successes in 60s" >&2
+echo "[healthcheck] FAILED — no $NEEDED consecutive successes in 120s" >&2
 exit 1

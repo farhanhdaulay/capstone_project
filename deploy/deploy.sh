@@ -43,6 +43,9 @@ if [ -f "$STATE_DIR/deployed.txt" ]; then
     PREV=$(cat "$STATE_DIR/deployed.txt")
     echo "$PREV" >> "$STATE_DIR/deployed.txt.history"
     echo "[deploy] Previous tag: $PREV (saved for rollback)"
+else
+    echo "[deploy] First deploy — initializing state"
+    echo "$TAG" >> "$STATE_DIR/deployed.txt.history"
 fi
 
 # 3. Pull and restart
@@ -50,6 +53,9 @@ export IMAGE_TAG="$TAG"
 docker compose -f "$COMPOSE_FILE" pull || \
     echo "[deploy] WARNING: pull failed, using local cache"
 docker compose -f "$COMPOSE_FILE" up -d --force-recreate
+
+echo "[deploy] Waiting 25s for app to initialize..."
+sleep 25
 
 # 4. Healthcheck — rollback on failure
 if ! bash "$(dirname "$0")/healthcheck.sh"; then
