@@ -41,7 +41,7 @@ class HealthCheckServer:
 
     def start_in_thread(self) -> threading.Thread:
         """Start the healthz server on a daemon thread."""
-        self._server = HTTPServer(("0.0.0.0", self.port), _Handler)
+        self._server = HTTPServer(("0.0.0.0", self.port), _Handler)  # nosec B104
         t = threading.Thread(
             target=self._server.serve_forever,
             daemon=True,

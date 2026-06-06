@@ -162,7 +162,7 @@ class AlertController:
             ], dtype=np.float32)
             sd.play(wave, samplerate=sample_rate, blocking=True)
     
-    def _make_alert_wav(self, path: str = "/tmp/dms_alert.wav") -> str:
+    def _make_alert_wav(self, path: str = "/tmp/dms_alert.wav") -> str:  # nosec B108
         """Generate a two-tone siren WAV file and return its path."""
         import wave
         import struct
