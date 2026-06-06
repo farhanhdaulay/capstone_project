@@ -17,6 +17,7 @@ permissions:
 jobs:
   deploy:
     name: Deploy (Jetson)
+    # CRITICAL: This assumes you have installed the GitHub Actions Runner on your Jetson.
     runs-on: [self-hosted, linux, arm64, jetson]
     environment:
       name: production
@@ -61,7 +62,8 @@ jobs:
       - name: Run deploy.sh
         env:
           DEPLOY_ENV: production
-        run: bash deploy/deploy.sh "${{ github.ref_name }}"
+        # FIXED: Added the 'production' argument required by your deploy.sh script
+        run: bash deploy/deploy.sh "${{ github.ref_name }}" production
 
       - name: Post deploy summary
         if: always()
@@ -70,6 +72,6 @@ jobs:
           echo "- Tag: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- Image: ghcr.io/${{ github.repository }}:${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           if [ -f /var/lib/capstone_project/deployed.txt ]; then
-            echo "- Deployed: $(cat /var/lib/capstone_projoect/deployed.txt)" >> $GITHUB_STEP_SUMMARY
+            echo "- Deployed: $(cat /var/lib/capstone_project/deployed.txt)" >> $GITHUB_STEP_SUMMARY
           fi
           echo "- Health: $(curl -s http://localhost:8000/healthz || echo 'unavailable')" >> $GITHUB_STEP_SUMMARY
