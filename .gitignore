@@ -26,3 +26,5 @@ logs/
 .DS_Store
 .vscode/*.pth
 testing_hardware/
+models/
+docker-compose-pr.yaml

@@ -34,6 +34,9 @@ echo "[deploy] Setting nvpmodel to $MODE_NAME (ID=$MODE_ID) for env=$ENV"
 sudo nvpmodel -m "$MODE_ID"
 sudo jetson_clocks
 sleep 2
+echo "[deploy] Freeing port 8000..."
+sudo fuser -k 8000/tcp || true
+sleep 1
 
 # 2. Save previous tag for rollback
 if [ -f "$STATE_DIR/deployed.txt" ]; then

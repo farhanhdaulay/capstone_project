@@ -5,10 +5,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
+logger = logging.getLogger(__name__)
 
 PORT = int(os.environ.get("HEALTHZ_PORT", "8000"))
 MODEL_VERSION = os.environ.get("MODEL_VERSION", "unknown")
@@ -16,15 +19,13 @@ MODEL_VERSION = os.environ.get("MODEL_VERSION", "unknown")
 
 def _current_power_mode() -> str:
     """Read live nvpmodel state from mounted status file or binary."""
-    # Try reading from bind-mounted status file first (works inside container)
     try:
-        status = open("/var/lib/nvpmodel/status").read()
-        for line in status.splitlines():
-            if "Power Model Name" in line:
-                return line.split(":")[-1].strip()
+        with open("/var/lib/nvpmodel/status") as f:
+            for line in f.read().splitlines():
+                if "Power Model Name" in line:
+                    return line.split(":")[-1].strip()
     except (FileNotFoundError, PermissionError):
         pass
-    # Fallback: try nvpmodel binary
     try:
         out = subprocess.run(
             ["nvpmodel", "-q"],
@@ -46,18 +47,21 @@ class HealthCheckServer:
 
     def start_in_thread(self) -> threading.Thread:
         """Start the healthz server on a daemon thread."""
-        server = HTTPServer(("0.0.0.0", self.port), _Handler) # nosec B104 — intentional container-internal bind, not exposed to public network
-        t = threading.Thread(
-            target=server.serve_forever,
-            daemon=True,
-            name="healthz",
-        )
+        def _run() -> None:
+            try:
+                server = HTTPServer(("0.0.0.0", self.port), _Handler)  # nosec B104
+                logger.info("HealthCheckServer listening on port %d", self.port)
+                server.serve_forever()
+            except Exception as exc:  # pylint: disable=broad-except
+                logger.error("HealthCheckServer failed to start: %s", exc)
+
+        t = threading.Thread(target=_run, daemon=True, name="healthz")
         t.start()
         return t
 
 
 class _Handler(BaseHTTPRequestHandler):
-    def do_GET(self) -> None:
+    def do_GET(self) -> None:  # noqa: N802
         if self.path != "/healthz":
             self.send_error(404)
             return
