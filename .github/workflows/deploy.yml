@@ -1,5 +1,9 @@
 # Copyright (c) 2026 Kishore Sridhar & Farhan Hikmatullah Daulay
 # Tatung University 14210 AI實務專題
+# .github/workflows/deploy.yml — tag-triggered CD pipeline (Pattern II)
+# Triggers: push of v*.*.* annotated tag
+# Jobs: deploy (self-hosted Jetson runner + production environment approval)
+
 name: Deploy
 
 on:
@@ -18,35 +22,54 @@ jobs:
       name: production
       url: >-
         https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+
     steps:
-      - uses: actions/checkout@v5
-      
+      - uses: actions/checkout@v4
+
       - name: Log in to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v4
-        
-      - name: Re-tag the SHA image as semver
+
+      - name: Set up Buildx (for imagetools re-tag)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Re-tag SHA image as semver (no rebuild)
         env:
           TAG: ${{ github.ref_name }}
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          SRC="ghcr.io/${{ github.repository }}:sha-$SHORT_SHA"
+          SRC="ghcr.io/${{ github.repository }}:sha-${SHORT_SHA}"
           MAJ="${TAG%%.*}"
           MIN="${TAG%.*}"
           for NEW in "$TAG" "$MIN" "$MAJ" "latest"; do
-            IMG_BASE="ghcr.io/${{ github.repository }}"
-            docker buildx imagetools create -t "$IMG_BASE:$NEW" "$SRC"
+            docker buildx imagetools create \
+              -t "ghcr.io/${{ github.repository }}:${NEW}" "$SRC"
+            echo "Tagged: ghcr.io/${{ github.repository }}:${NEW}"
           done
-          
-      - name: Run deploy.sh on this Jetson
+
+      - name: One-time setup — state directory
+        run: |
+          sudo mkdir -p /var/lib/capstone_project
+          sudo chown -R $USER:$USER /var/lib/capstone_project
+
+      - name: Make scripts executable
+        run: chmod +x deploy/deploy.sh deploy/rollback.sh deploy/healthcheck.sh
+
+      - name: Run deploy.sh
         env:
           DEPLOY_ENV: production
+        run: bash deploy/deploy.sh "${{ github.ref_name }}"
+
+      - name: Post deploy summary
+        if: always()
         run: |
-          chmod +x deploy/deploy.sh deploy/healthcheck.sh
-          bash deploy/deploy.sh "${{ github.ref_name }}"
+          echo "### Deploy Result" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: ghcr.io/${{ github.repository }}:${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f /var/lib/capstone_project/deployed.txt ]; then
+            echo "- Deployed: $(cat /var/lib/capstone_projoect/deployed.txt)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- Health: $(curl -s http://localhost:8000/healthz || echo 'unavailable')" >> $GITHUB_STEP_SUMMARY

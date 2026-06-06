@@ -1,0 +1,25 @@
+# Copyright (c) 2026 Kishore Sridhar & Farhan Hikmatullah Daulay
+# Tatung University 14210 AI實務專題
+# deploy/docker-compose.yml — production compose
+# Image tag injected via $IMAGE_TAG from deploy.sh
+
+services:
+  dms-core:
+    image: ghcr.io/farhanhdaulay/capstone_project:${IMAGE_TAG}
+    runtime: nvidia
+    network_mode: host
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models
+      - /var/lib/nvpmodel/status:/var/lib/nvpmodel/status:ro
+      - /etc/nvpmodel.conf:/etc/nvpmodel.conf:ro
+    environment:
+      MODEL_VERSION: ${IMAGE_TAG}
+      HEALTHZ_PORT: "8000"
+    privileged: true
+    devices:
+      - "/dev/i2c-1:/dev/i2c-1"
+      - "/dev/i2c-0:/dev/i2c-0"
+      - "/dev/video0:/dev/video0"
+      - "/dev/snd:/dev/snd"
+    restart: unless-stopped
