@@ -28,7 +28,9 @@ def inference_container():
         "-v", "dms-models:/opt/models", 
         "--device", "/dev/video0:/dev/video0",
         "--device", "/dev/video1:/dev/video1",
-        IMAGE
+        IMAGE,
+        # OVERRIDE THE DEFAULT COMMAND TO FORCE SOURCE 0
+        "python3", "src/dms/main.py", "--no-window", "--source", "0"
     ]
     
     result = subprocess.run(start_cmd, capture_output=True, text=True)

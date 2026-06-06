@@ -370,7 +370,7 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
 
     # Camera
     camera = Camera(
-        source=cfg.CAMERA_SOURCE,
+        source=0,
         width=cfg.CAMERA_WIDTH,
         height=cfg.CAMERA_HEIGHT,
         fps=cfg.CAMERA_FPS,
