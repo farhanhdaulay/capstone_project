@@ -57,7 +57,13 @@ jobs:
           sudo chown -R $USER:$USER /var/lib/capstone_project
 
       - name: Make scripts executable
-        run: chmod +x deploy/deploy.sh deploy/rollback.sh deploy/healthcheck.sh
+        run: |
+          # Install dos2unix to convert Windows line endings to Linux
+          sudo apt-get update && sudo apt-get install -y dos2unix
+          # Convert the files
+          dos2unix deploy/*.sh
+          # Make them executable
+          chmod +x deploy/deploy.sh deploy/rollback.sh deploy/healthcheck.sh
 
       - name: Run deploy.sh
         env:
