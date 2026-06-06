@@ -30,7 +30,7 @@ def inference_container():
         "--device", "/dev/video1:/dev/video1",
         IMAGE,
         # OVERRIDE THE DEFAULT COMMAND TO FORCE SOURCE 0
-        "python3", "src/dms/main.py", "--no-window", "--source", "0"
+        "python3", "src/dms/main.py", "--no-window"
     ]
     
     result = subprocess.run(start_cmd, capture_output=True, text=True)
