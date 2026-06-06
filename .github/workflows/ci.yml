@@ -101,7 +101,8 @@ jobs:
           file: Dockerfile
           platforms: linux/arm64
           push: false   
-          load: true    
+          load: true
+          network: host  
           tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}:sha-${{ steps.vars.outputs.sha_short }}
           # REMOVED cache-from and cache-to lines.
 
