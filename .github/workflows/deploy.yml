@@ -17,7 +17,6 @@ permissions:
 jobs:
   deploy:
     name: Deploy (Jetson)
-    # CRITICAL: This assumes you have installed the GitHub Actions Runner on your Jetson.
     runs-on: [self-hosted, linux, arm64, jetson]
     environment:
       name: production
@@ -58,17 +57,13 @@ jobs:
 
       - name: Make scripts executable
         run: |
-          # Install the conversion tool
           sudo apt-get update && sudo apt-get install -y dos2unix
-          # Force all shell scripts to Linux format
           dos2unix deploy/*.sh
-          # Make them executable
           chmod +x deploy/deploy.sh deploy/rollback.sh deploy/healthcheck.sh
 
       - name: Run deploy.sh
         env:
           DEPLOY_ENV: production
-        # FIXED: Added the 'production' argument required by your deploy.sh script
         run: bash deploy/deploy.sh "${{ github.ref_name }}" production
 
       - name: Post deploy summary
