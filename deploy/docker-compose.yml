@@ -25,4 +25,4 @@ services:
       - "/dev/i2c-0:/dev/i2c-0"
       - "/dev/video0:/dev/video0"
       - "/dev/snd:/dev/snd"
-    restart: unless-stopped
+    restart: "no"
