@@ -96,7 +96,7 @@ jobs:
       - name: Build image
         run: |
           IMAGE="ghcr.io/${{ steps.vars.outputs.repo_lowercase }}:sha-${{ steps.vars.outputs.sha_short }}"
-          DOCKER_BUILDKIT=1 docker build -t "$IMAGE" -f Dockerfile .
+          DOCKER_BUILDKIT=1 docker build --network host -t "$IMAGE" -f Dockerfile .
 
       # PHASE 2: BRUTE FORCE PUSH
       - name: Brute-Force Push to GHCR
