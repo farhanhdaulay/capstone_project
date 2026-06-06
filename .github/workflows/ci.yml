@@ -71,6 +71,7 @@ jobs:
     name: Build & push ARM64 image
     runs-on: [self-hosted, linux, arm64, jetson]
     needs: [test, security-scan]
+    timeout-minutes: 1440
     steps:
       - uses: actions/checkout@v5
         
@@ -89,32 +90,22 @@ jobs:
         run: |
           echo "sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
           echo "repo_lowercase=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-          
-      - name: Create Cache Directories
-        run: mkdir -p /home/jetson/.buildx-cache /home/jetson/.buildx-cache-new 
            
-      # PHASE 1: BUILD AND LOAD ONLY (NO PUSH)
+      # PHASE 1: BUILD AND LOAD (NO CACHE EXPORT)
       - name: Build and Load into Jetson
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
           platforms: linux/arm64
-          push: false   # CRITICAL: We do not push here anymore
-          load: true    # CRITICAL: We load it directly into the Jetson's local memory
+          push: false   
+          load: true    
           tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}:sha-${{ steps.vars.outputs.sha_short }}
-          cache-from: type=local,src=/home/jetson/.buildx-cache
-          cache-to: type=local,dest=/home/jetson/.buildx-cache-new,mode=max
+          # REMOVED cache-from and cache-to lines.
 
-      # PHASE 2: SAVE CACHE IMMEDIATELY
-      # If the network fails later, your 4-hour build is already saved!
-      - name: Swap local cache (Prevents Disk Full Error)
-        run: |
-          rm -rf /home/jetson/.buildx-cache
-          mv /home/jetson/.buildx-cache-new /home/jetson/.buildx-cache
+      # REMOVED Phase 2 (Swap local cache) entirely. 
 
-      # PHASE 3: BRUTE FORCE PUSH
-      # This script will violently retry pushing up to 10 times, bypassing Docker's weak limits.
+      # PHASE 2: BRUTE FORCE PUSH
       - name: Brute-Force Push to GHCR
         run: |
           IMAGE="ghcr.io/${{ steps.vars.outputs.repo_lowercase }}:sha-${{ steps.vars.outputs.sha_short }}"
