@@ -126,15 +126,25 @@ jobs:
       - name: Install pytest deps
         run: pip install --user pytest==8.3.3
 
-      # ← ADD THIS STEP
       - name: Stop any running compose services and free camera
         run: |
+          # Stop ROOT compose stack (dev)
           cd /home/jetson/dms_project
           docker compose down || true
+
+          # Stop DEPLOY compose stack too
+          docker compose -f /home/jetson/dms_project/deploy/docker-compose.yml down || true
+
+          # Kill any remaining containers
           docker rm -f dms_integration_test || true
+
+          # Force release camera
           sudo fuser -k /dev/video0 || true
           sudo fuser -k /dev/video1 || true
           sleep 2
+
+          echo "Camera status:"
+          sudo fuser -v /dev/video0 || echo "Camera is free!"
 
       - name: Run E2E integration test
         run: |
@@ -142,3 +152,12 @@ jobs:
           REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           IMG="ghcr.io/$REPO:sha-$SHA"
           IMAGE="$IMG" pytest tests/integration/test_jetson_e2e.py -v -s
+
+      - name: Restart deploy stack after test
+        if: always() # runs even if test fails
+        run: |
+          cd /home/jetson/dms_project
+          IMAGE_TAG=$(cat /var/lib/edgeai-hw6/deployed.txt 2>/dev/null || echo "sha-$(git rev-parse --short=7 HEAD)")
+          export IMAGE_TAG
+          docker compose -f deploy/docker-compose.yml up -d || true
+          echo "Deploy stack restarted with IMAGE_TAG=$IMAGE_TAG"
