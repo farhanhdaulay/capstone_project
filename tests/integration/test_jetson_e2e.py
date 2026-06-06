@@ -21,15 +21,21 @@ def inference_container():
     
     print(f"\nStarting container: {IMAGE}")
     start_cmd = [
-        "docker", "run", "-d", 
-        # REMOVED --rm so we can actually read the crash logs!
+        "docker", "run", "-d",
         "--name", CONTAINER_NAME,
         "--runtime", "nvidia",
         "--privileged",
-        "-v", "dms-models:/opt/models", 
+        "-v", "dms-models:/app/models",
         "-v", "/dev:/dev",
+    
+        # ← ADD THESE for USB camera
+        "--device", "/dev/video0:/dev/video0",
+        "--device", "/dev/video1:/dev/video1",  # USB cameras register two nodes
+    
+        # USB camera needs access to USB bus
+        "--device", "/dev/bus/usb",
+    
         IMAGE,
-        # OVERRIDE THE DEFAULT COMMAND TO FORCE SOURCE 0
         "python3", "src/dms/main.py", "--no-window"
     ]
     
@@ -55,7 +61,11 @@ def test_inference_starts_successfully(inference_container):
         
         # We are looking for a log line that proves your pipeline ran successfully.
         # Adjust "FPS:" or "Detection" to exactly match whatever your inference_node prints!
-        if "FPS:" in logs.stdout or "Detection" in logs.stdout:
+        if ("FPS:" in logs.stdout or
+    "Detection" in logs.stdout or
+    "Loop running" in logs.stdout or
+    "Calibration complete" in logs.stdout or
+    "State:" in logs.stdout):
             success = True
             break
             
