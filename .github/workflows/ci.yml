@@ -81,13 +81,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
-          
+
       - name: Process Environment Variables
         id: vars
         run: |
           echo "sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
           echo "repo_lowercase=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-           
+
       # PHASE 1: BUILD (uses the Jetson daemon's persistent local layer cache).
       # Plain docker build reuses cached layers across runs, so unchanged
       # layers (the heavy `pip install`) are skipped unless requirements.txt
@@ -125,9 +125,20 @@ jobs:
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Install pytest deps
         run: pip install --user pytest==8.3.3
+
+      # ← ADD THIS STEP
+      - name: Stop any running compose services and free camera
+        run: |
+          cd /home/jetson/dms_project
+          docker compose down || true
+          docker rm -f dms_integration_test || true
+          sudo fuser -k /dev/video0 || true
+          sudo fuser -k /dev/video1 || true
+          sleep 2
+
       - name: Run E2E integration test
         run: |
           SHA=$(git rev-parse --short=7 HEAD)
           REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           IMG="ghcr.io/$REPO:sha-$SHA"
-          IMAGE="$IMG" pytest tests/integration/test_jetson_e2e.py -v
+          IMAGE="$IMG" pytest tests/integration/test_jetson_e2e.py -v -s

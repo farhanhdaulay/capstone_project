@@ -17,8 +17,14 @@ CONTAINER_NAME = "dms_integration_test"
 @pytest.fixture(scope="module")
 def inference_container():
     """Starts the Docker container with GPU access and cleans it up after."""
+    # Kill any leftover containers first
     subprocess.run(["docker", "rm", "-f", CONTAINER_NAME], capture_output=True)
     
+    # ← ADD THIS: release camera from any zombie processes
+    subprocess.run(["sudo", "fuser", "-k", "/dev/video0"], capture_output=True)
+    subprocess.run(["sudo", "fuser", "-k", "/dev/video1"], capture_output=True)
+    time.sleep(2)  # give OS time to release the device
+
     print(f"\nStarting container: {IMAGE}")
     start_cmd = [
         "docker", "run", "-d",
@@ -27,14 +33,9 @@ def inference_container():
         "--privileged",
         "-v", "dms-models:/app/models",
         "-v", "/dev:/dev",
-    
-        # ← ADD THESE for USB camera
         "--device", "/dev/video0:/dev/video0",
-        "--device", "/dev/video1:/dev/video1",  # USB cameras register two nodes
-    
-        # USB camera needs access to USB bus
+        "--device", "/dev/video1:/dev/video1",
         "--device", "/dev/bus/usb",
-    
         IMAGE,
         "python3", "src/dms/main.py", "--no-window"
     ]
@@ -46,8 +47,11 @@ def inference_container():
     
     print("\nStopping and cleaning up container...")
     subprocess.run(["docker", "stop", CONTAINER_NAME], capture_output=True)
-    # Added rm -f here to manually clean up since we removed --rm
     subprocess.run(["docker", "rm", "-f", CONTAINER_NAME], capture_output=True)
+    
+    # ← Release camera after test too
+    subprocess.run(["sudo", "fuser", "-k", "/dev/video0"], capture_output=True)
+    subprocess.run(["sudo", "fuser", "-k", "/dev/video1"], capture_output=True)
 
 def test_inference_starts_successfully(inference_container):
     """Asserts that the container loads the model and runs inference by checking logs."""
