@@ -74,12 +74,7 @@ jobs:
     timeout-minutes: 1440
     steps:
       - uses: actions/checkout@v5
-        
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker
-          
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -93,20 +88,15 @@ jobs:
           echo "sha_short=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
           echo "repo_lowercase=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
            
-      # PHASE 1: BUILD AND LOAD (NO CACHE EXPORT)
-      - name: Build and Load into Jetson
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/arm64
-          push: false   
-          load: true
-          network: host  
-          tags: ghcr.io/${{ steps.vars.outputs.repo_lowercase }}:sha-${{ steps.vars.outputs.sha_short }}
-          # REMOVED cache-from and cache-to lines.
-
-      # REMOVED Phase 2 (Swap local cache) entirely. 
+      # PHASE 1: BUILD (uses the Jetson daemon's persistent local layer cache).
+      # Plain docker build reuses cached layers across runs, so unchanged
+      # layers (the heavy `pip install`) are skipped unless requirements.txt
+      # changes. The image lands directly in the local image store (no load
+      # needed) ready for the push step below.
+      - name: Build image
+        run: |
+          IMAGE="ghcr.io/${{ steps.vars.outputs.repo_lowercase }}:sha-${{ steps.vars.outputs.sha_short }}"
+          DOCKER_BUILDKIT=1 docker build -t "$IMAGE" -f Dockerfile .
 
       # PHASE 2: BRUTE FORCE PUSH
       - name: Brute-Force Push to GHCR
