@@ -27,6 +27,7 @@ def inference_container():
         "--runtime", "nvidia",
         "-v", "dms-models:/opt/models", 
         "--device", "/dev/video0:/dev/video0",
+        "--device", "/dev/video1:/dev/video1",
         IMAGE
     ]
     
