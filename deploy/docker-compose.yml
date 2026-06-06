@@ -9,8 +9,8 @@ services:
     runtime: nvidia
     network_mode: host
     volumes:
-      - - /var/lib/capstone_project/logs:/app/logs
-      - ./models:/app/models
+      - /var/lib/capstone_project/logs:/app/logs
+      - /home/jetson/dms_project/models:/app/models
       - /var/lib/nvpmodel/status:/var/lib/nvpmodel/status:ro
       - /etc/nvpmodel.conf:/etc/nvpmodel.conf:ro
     ports:
