@@ -33,6 +33,7 @@ from dms.modules.alert         import AlertController
 from dms.modules.state_machine import DMSStateMachine, DMSEvent
 import dms.config as cfg
 from dms.modules.camera import Camera
+from dms.healthcheck import start_in_thread as start_healthz
 
 # Allow `python src/dms/main.py` as a fallback
 if __name__ == "__main__" and __package__ is None:
@@ -667,6 +668,7 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    start_healthz()
     parser = argparse.ArgumentParser(description="Driver Monitoring System")
     parser.add_argument("--no-window", action="store_true",
                         help="No cv2.imshow window (use over SSH).")

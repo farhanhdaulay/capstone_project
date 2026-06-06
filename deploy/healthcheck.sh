@@ -11,17 +11,16 @@ STREAK=0
 NEEDED=3
 
 while [ "$SECONDS" -lt "$DEADLINE" ]; do
-    if body=$(curl -fsS --max-time 2 "$URL" 2>/dev/null) && \
-        python3 -c "
-import sys, json
-d = json.loads('$body'.replace(\"'\", '\"'))
-sys.exit(0 if d.get('status') == 'healthy' else 1
-)" 2>/dev/null; then
+    HTTP_CODE=$(curl -o /tmp/healthz_body.json -w "%{http_code}" \
+        -fsS --max-time 2 "$URL" 2>/dev/null || echo "000")
+
+    if [ "$HTTP_CODE" = "200" ]; then
+        BODY=$(cat /tmp/healthz_body.json 2>/dev/null || echo "{}")
         STREAK=$((STREAK + 1))
-        echo "[healthcheck] OK ($STREAK/$NEEDED): $body"
+        echo "[healthcheck] OK ($STREAK/$NEEDED): $BODY"
         [ "$STREAK" -ge "$NEEDED" ] && exit 0
     else
-        [ "$STREAK" -gt 0 ] && echo "[healthcheck] streak broken at $STREAK"
+        [ "$STREAK" -gt 0 ] && echo "[healthcheck] streak broken at $STREAK (HTTP $HTTP_CODE)"
         STREAK=0
     fi
     sleep 2
