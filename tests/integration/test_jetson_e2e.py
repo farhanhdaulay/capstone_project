@@ -21,10 +21,11 @@ def inference_container():
     
     print(f"\nStarting container: {IMAGE}")
     start_cmd = [
-        "docker", "run", "-d", "--rm",
+        "docker", "run", "-d", 
+        # REMOVED --rm so we can actually read the crash logs!
         "--name", CONTAINER_NAME,
         "--runtime", "nvidia",
-        "-v", "dms-models:/opt/models", # Cache TensorRT engines for PFLD, 6DRepNet, YOLO
+        "-v", "dms-models:/opt/models", 
         IMAGE
     ]
     
@@ -33,8 +34,10 @@ def inference_container():
     
     yield CONTAINER_NAME
     
-    print("\nStopping container...")
+    print("\nStopping and cleaning up container...")
     subprocess.run(["docker", "stop", CONTAINER_NAME], capture_output=True)
+    # Added rm -f here to manually clean up since we removed --rm
+    subprocess.run(["docker", "rm", "-f", CONTAINER_NAME], capture_output=True)
 
 def test_inference_starts_successfully(inference_container):
     """Asserts that the container loads the model and runs inference by checking logs."""
