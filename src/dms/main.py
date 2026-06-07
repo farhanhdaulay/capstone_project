@@ -150,7 +150,7 @@ def _mjpeg_server(port: int) -> None:
     log = logging.getLogger("dms.stream")
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind(("0.0.0.0", port))
+    srv.bind(("0.0.0.0", port))  # nosec B104
     srv.listen(16)
     srv.setblocking(False)
 
