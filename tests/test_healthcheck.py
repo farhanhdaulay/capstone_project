@@ -50,7 +50,7 @@ def test_healthz_endpoint_success():
     """Ensure the server spins up and returns 200 OK with valid JSON."""
     # Use a high, non-standard port to avoid conflicts
     server = HealthCheckServer(port=8123)
-    t = server.start_in_thread()
+    server.start_in_thread()
     time.sleep(0.1)  # Give the daemon thread a moment to bind the socket
 
     # We mock the power mode so it doesn't actually try to run Jetson commands during the HTTP request

@@ -8,7 +8,6 @@ from __future__ import annotations
 import sys
 from unittest.mock import MagicMock, patch
 import numpy as np
-import pytest
 
 # FAKE THE HARDWARE LIBRARIES BEFORE IMPORTING DMS MODULES
 sys.modules["tensorrt"] = MagicMock()
