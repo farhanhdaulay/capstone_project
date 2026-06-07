@@ -473,6 +473,7 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
         _dist_consec_t = 0
         INFER_SCALE = 0.5
         _infer_frame_count = 0
+        _last_bbox = None
         while True:
             try:
                 frame_full, small_f = _infer_input.get()
@@ -489,13 +490,14 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
                 if face_det:
                     try:
                         small_b = face_det.detect(small_f)
-                        _last_bbox = small_b  # Save the new box for skipped frames
+                        if small_b is not None:
+                            _last_bbox = small_b  # Update only if a face is found
                     except Exception:
-                        small_b = _last_bbox  # Fallback to old box if detection crashes
-            else:
-                # Frame skipped! Reuse the bounding box from the last frame
-                small_b = _last_bbox
-
+                        pass # Silently fail and reuse the old box
+            # Reuse the last known box for skipped frames or failed detections
+            small_b = _last_bbox
+            if small_b is None:
+                continue
             # 2. PFLD & Headpose
             if small_b is not None:
                 if pfld:
