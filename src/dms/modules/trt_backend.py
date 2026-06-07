@@ -5,6 +5,9 @@ import numpy as np
 
 class TRTWrapper:
     def __init__(self, engine_path):
+        # 1. Capture the CUDA context created by autoinit
+        self.ctx = pycuda.autoinit.context
+        
         logger = trt.Logger(trt.Logger.ERROR)
         trt.init_libnvinfer_plugins(logger, namespace="")
         
@@ -16,20 +19,16 @@ class TRTWrapper:
         self.outputs = []
         self.stream = cuda.Stream()
 
-        # TensorRT 10 IOTensor API
         for i in range(self.engine.num_io_tensors):
             name = self.engine.get_tensor_name(i)
             dtype = trt.nptype(self.engine.get_tensor_dtype(name))
             shape = self.engine.get_tensor_shape(name)
             
-            # Resolve dynamic batch sizes if they exist
             if -1 in shape:
                 shape = self.context.get_tensor_shape(name)
                 
             size = trt.volume(shape) * np.dtype(dtype).itemsize
             device_mem = cuda.mem_alloc(size)
-            
-            # TRT 10 requires mapping memory directly to the context
             self.context.set_tensor_address(name, int(device_mem))
             
             is_input = self.engine.get_tensor_mode(name) == trt.TensorIOMode.INPUT
@@ -48,21 +47,22 @@ class TRTWrapper:
                 self.outputs.append(binding)
 
     def predict(self, input_data):
-        input_data = np.ascontiguousarray(input_data)
-        
-        # 1. Copy data from Host (CPU) to pagelocked memory, then to Device (GPU)
-        np.copyto(self.inputs[0]['host'], input_data.ravel())
-        cuda.memcpy_htod_async(self.inputs[0]['device'], self.inputs[0]['host'], self.stream)
-        
-        # 2. Run inference using TensorRT 10 execute_async_v3 API
-        self.context.execute_async_v3(stream_handle=self.stream.handle)
-        
-        # 3. Transfer predictions back from Device to Host
-        for out in self.outputs:
-            cuda.memcpy_dtoh_async(out['host'], out['device'], self.stream)
+        # 2. PUSH the CUDA context into the current worker thread
+        self.ctx.push()
+        try:
+            input_data = np.ascontiguousarray(input_data)
             
-        # 4. Wait for completion
-        self.stream.synchronize()
-        
-        # 5. Return outputs
-        return [out['host'].reshape(out['shape']) for out in self.outputs]
+            np.copyto(self.inputs[0]['host'], input_data.ravel())
+            cuda.memcpy_htod_async(self.inputs[0]['device'], self.inputs[0]['host'], self.stream)
+            
+            self.context.execute_async_v3(stream_handle=self.stream.handle)
+            
+            for out in self.outputs:
+                cuda.memcpy_dtoh_async(out['host'], out['device'], self.stream)
+                
+            self.stream.synchronize()
+            
+            return [out['host'].reshape(out['shape']) for out in self.outputs]
+        finally:
+            # 3. POP the context so we don't leak memory or block other threads
+            self.ctx.pop()
