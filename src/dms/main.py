@@ -25,7 +25,7 @@ import sys
 import threading
 import time
 from datetime import datetime
-from typing import Any, Optional, Tuple, Dict, List
+from typing import Any, Optional, Tuple, Dict
 
 import cv2
 import numpy as np
