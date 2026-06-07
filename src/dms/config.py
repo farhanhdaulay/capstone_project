@@ -34,7 +34,7 @@ LOG_DIR   = os.path.join(PROJECT_ROOT, "logs")
 # ---------------------------------------------------------------------------
 PFLD_MODEL      = os.path.join(MODEL_DIR, "pfld_106_lite.onnx")
 HEAD_POSE_MODEL = os.path.join(MODEL_DIR, "6drepnet360.onnx")
-YOLO_ENGINE     = os.path.join(MODEL_DIR, "yolo26n.onnx")   # TensorRT engine if built
+YOLO_ENGINE     = os.path.join(MODEL_DIR, "yolo26n.engine")   # TensorRT engine if built
 YOLO_PT         = os.path.join(MODEL_DIR, "yolo26n.pt")     # fallback PyTorch weights
 
 # ---------------------------------------------------------------------------
