@@ -17,9 +17,12 @@ WORKDIR /app
 COPY requirements.txt .
 
 # 3. PIP INSTALL WITH BUILDKIT CACHE MOUNT 
-# (This is the magic line that stops 4-hour rebuilds)
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install --no-cache-dir -r requirements.txt
+
+# ---> NEW: Install PyCUDA for TensorRT Backend <---
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install --no-cache-dir pycuda
 
 # 4. Install custom ONNXRuntime wheel
 RUN --mount=type=cache,target=/root/.cache/pip \

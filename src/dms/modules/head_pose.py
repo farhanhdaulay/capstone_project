@@ -2,7 +2,7 @@
 """
 Head pose estimation using 6DRepNet360.
 
-Handles two possible ONNX export formats:
+Handles two possible TensorRT export formats:
   (1, 6)   -- 6D rotation representation (most common export)
   (1, 3, 3)-- rotation matrix (less common)
 
@@ -12,13 +12,13 @@ ROI is clamped to frame bounds before slicing.
 
 import cv2
 import numpy as np
-import onnxruntime as ort
+from dms.modules.trt_backend import TRTWrapper
 from dms.config import HEAD_POSE_MODEL
 
 
 class HeadPoseEstimator:
     """
-    Estimates head orientation from a face crop.
+    Estimates head orientation from a face crop using TensorRT.
 
     Usage:
         estimator = HeadPoseEstimator()
@@ -31,38 +31,24 @@ class HeadPoseEstimator:
     _STD  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
     def __init__(self, model_path=HEAD_POSE_MODEL):
-        providers     = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-        self.sess     = ort.InferenceSession(model_path, providers=providers)
-        self.in_name  = self.sess.get_inputs()[0].name
-        self.out_name = self.sess.get_outputs()[0].name
+        # 1. Initialize the custom TensorRT wrapper
+        self.sess = TRTWrapper(model_path)
 
-        # Probe output shape so we know which decoder to use
-        out_shape = self.sess.get_outputs()[0].shape
-        print("[HeadPose] Loaded: {}".format(model_path))
-        print("           provider = {}".format(self.sess.get_providers()[0]))
-        print("           input    = {}".format(self.sess.get_inputs()[0].shape))
-        print("           output   = {}".format(out_shape))
+        # 2. Extract shape from the wrapper's pre-allocated outputs
+        out_shape = self.sess.outputs[0]['shape']
+        
+        print("[HeadPose] Loaded TRT Engine: {}".format(model_path))
+        print("           output shape = {}".format(out_shape))
 
-        # Collect only the integer dims (skip dynamic 'batch_size' strings)
-        static = [d for d in out_shape if isinstance(d, int)]
+        # 3. Detect the export format (ignore batch dimensions like -1 or 1)
+        static = [d for d in out_shape if isinstance(d, int) and d > 1]
 
         if len(static) == 1 and static[0] == 6:
             self._out_format = "6d"
             print("[HeadPose] Format: 6D rotation representation -> will convert to R")
-        elif len(static) == 2 and static == [3, 3]:
+        else:
             self._out_format = "rotmat"
             print("[HeadPose] Format: 3x3 rotation matrix")
-        else:
-            # Fall back: run a dummy pass and check runtime shape
-            dummy = np.zeros((1, 3, self.INPUT_SIZE[0], self.INPUT_SIZE[1]),
-                             dtype=np.float32)
-            out = self.sess.run([self.out_name], {self.in_name: dummy})[0]
-            print("[HeadPose] Runtime output shape: {} -- detecting format".format(out.shape))
-            if out.shape[-1] == 6:
-                self._out_format = "6d"
-            else:
-                self._out_format = "rotmat"
-            print("[HeadPose] Resolved format: {}".format(self._out_format))
 
     # -- public API ------------------------------------------------------------
 
@@ -96,8 +82,11 @@ class HeadPoseEstimator:
         img = (img - self._MEAN) / self._STD
         inp = img.transpose(2, 0, 1)[np.newaxis, :]  # (1, 3, 224, 224)
 
-        # Inference
-        out = self.sess.run([self.out_name], {self.in_name: inp})[0]
+        # Ensure contiguous memory before PyCUDA transfer!
+        inp = np.ascontiguousarray(inp)
+
+        # Inference: TRTWrapper returns a list of outputs. We grab the first one.
+        out = self.sess.predict(inp)[0]
 
         # Decode to rotation matrix
         if self._out_format == "6d":

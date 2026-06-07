@@ -10,7 +10,7 @@ Supports:
 
 import cv2
 import numpy as np
-import onnxruntime as ort
+from dms.modules.trt_backend import TRTWrapper
 from dms.config import PFLD_MODEL
 
 
@@ -49,7 +49,7 @@ def draw_landmarks(frame, landmarks, colour=(0, 220, 255), radius=2):
 
 class PFLDDetector:
     """
-    Runs PFLD on a pre-cropped face ROI.
+    Runs PFLD on a pre-cropped face ROI using TensorRT.
 
     Usage:
         detector = PFLDDetector()
@@ -60,26 +60,25 @@ class PFLDDetector:
     INPUT_SIZE = (112, 112)
 
     def __init__(self, model_path=PFLD_MODEL):
-        providers     = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-        self.sess     = ort.InferenceSession(model_path, providers=providers)
-        self.in_name  = self.sess.get_inputs()[0].name
-        self.out_name = self.sess.get_outputs()[0].name
+        # 1. Initialize the custom TensorRT wrapper
+        self.sess = TRTWrapper(model_path)
 
-        # Probe real output shape -- handles both static int and dynamic string dims
-        out_shape = self.sess.get_outputs()[0].shape
+        # 2. Extract shape from the wrapper's pre-allocated outputs
+        out_shape = self.sess.outputs[0]['shape']
         raw_dim   = out_shape[-1]
 
-        if isinstance(raw_dim, int):
+        # 3. Handle dynamic vs static shapes
+        if isinstance(raw_dim, int) and raw_dim > 1:
             self.n_pts = raw_dim // 2
         else:
             # Dynamic batch dim: run a dummy pass to get the real size
             dummy = np.zeros((1, 3, 112, 112), dtype=np.float32)
-            out   = self.sess.run([self.out_name], {self.in_name: dummy})[0]
+            dummy = np.ascontiguousarray(dummy) # MUST be contiguous for TRT
+            out   = self.sess.predict(dummy)[0]
             self.n_pts = out.shape[-1] // 2
 
-        print("[PFLD] Loaded: {}".format(model_path))
-        print("       provider  = {}".format(self.sess.get_providers()[0]))
-        print("       output    = {}".format(out_shape))
+        print("[PFLD] Loaded TRT Engine: {}".format(model_path))
+        print("       output shape = {}".format(out_shape))
         print("       landmarks = {}".format(self.n_pts))
 
         # Pick correct index set based on what the model actually outputs
@@ -135,8 +134,11 @@ class PFLDDetector:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
         inp = img.transpose(2, 0, 1)[np.newaxis, :]  # (1, 3, 112, 112)
 
-        # Inference
-        raw = self.sess.run([self.out_name], {self.in_name: inp})[0]
+        # Ensure contiguous memory before PyCUDA transfer!
+        inp = np.ascontiguousarray(inp)
+
+        # Inference: TRTWrapper returns a list of outputs. Grab the first one.
+        raw = self.sess.predict(inp)[0]
         raw = raw.reshape(-1)  # flatten: (136,) or (212,)
 
         # Decode: normalised [0,1] -> ROI pixels -> full-frame pixels

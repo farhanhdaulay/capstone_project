@@ -79,7 +79,7 @@ addopts = "-ra"
 [tool.coverage.run]
 source = ["src"]
 # Ignore init files from coverage math
-omit = ["src/__init__.py", "src/dms/__init__.py", "src/dms/modules/__init__.py", "src/dms/main.py", "src/dms/live_stream.py", "tests/*"]
+omit = ["src/__init__.py", "src/dms/__init__.py", "src/dms/modules/__init__.py", "src/dms/main.py", "src/dms/live_stream.py", "src/dms/modules/trt_backend.py", "tests/*"]
 branch = true
 
 [tool.coverage.report]

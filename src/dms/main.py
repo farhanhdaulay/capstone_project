@@ -472,9 +472,11 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
         """
         _dist_consec_t = 0
         INFER_SCALE = 0.5
+        _infer_frame_count = 0
         while True:
             try:
                 frame_full, small_f = _infer_input.get()
+                _infer_frame_count += 1
             except Exception:
                 continue
 
@@ -482,11 +484,17 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
             small_b = None
 
             # 1. Face YOLO
-            if face_det:
-                try:
-                    small_b = face_det.detect(small_f)
-                except Exception:
-                    pass
+            # Frame Skip: Only run YOLO every 3rd frame (roughly 10 times a second)
+            if _infer_frame_count % 3 == 0:
+                if face_det:
+                    try:
+                        small_b = face_det.detect(small_f)
+                        _last_bbox = small_b  # Save the new box for skipped frames
+                    except Exception:
+                        small_b = _last_bbox  # Fallback to old box if detection crashes
+            else:
+                # Frame skipped! Reuse the bounding box from the last frame
+                small_b = _last_bbox
 
             # 2. PFLD & Headpose
             if small_b is not None:
