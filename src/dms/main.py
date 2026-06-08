@@ -359,7 +359,7 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
         ).start()
 
     camera = Camera(
-        source=0,
+        source="/app/test_video.mp4",
         width=cfg.CAMERA_WIDTH,
         height=cfg.CAMERA_HEIGHT,
         fps=cfg.CAMERA_FPS,
@@ -559,9 +559,8 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
             loop_start = time.perf_counter() # START TIMER
             frame = camera.read()
             if frame is None:
-                logger.warning("No frame -- retrying...")
-                time.sleep(0.05)
-                continue
+                logger.warning("End of video stream reached. Exiting loop...")
+                break
 
             event = DMSEvent()
             INFER_SCALE = 0.5
