@@ -357,9 +357,10 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
             target=_mjpeg_server, args=(port,),
             daemon=True, name="mjpeg-server"
         ).start()
-
+    video_file = "/app/test_video.mp4"
+    cam_source = video_file if os.path.exists(video_file) else 0
     camera = Camera(
-        source="/app/test_video.mp4",
+        source=cam_source,
         width=cfg.CAMERA_WIDTH,
         height=cfg.CAMERA_HEIGHT,
         fps=cfg.CAMERA_FPS,
