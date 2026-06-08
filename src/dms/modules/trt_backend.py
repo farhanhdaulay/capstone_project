@@ -5,6 +5,9 @@ import numpy as np
 
 class TRTWrapper:
     def __init__(self, engine_path):
+        # 1. Capture the CUDA context created by autoinit
+        self.ctx = pycuda.autoinit.context
+        
         logger = trt.Logger(trt.Logger.ERROR)
         trt.init_libnvinfer_plugins(logger, namespace="")
         
@@ -14,41 +17,52 @@ class TRTWrapper:
         self.context = self.engine.create_execution_context()
         self.inputs = []
         self.outputs = []
-        self.bindings = []
         self.stream = cuda.Stream()
 
-        # Allocate memory buffers for inputs and outputs
-        for i in range(self.engine.num_bindings):
-            dtype = trt.nptype(self.engine.get_binding_dtype(i))
-            shape = self.context.get_binding_shape(i)
+        for i in range(self.engine.num_io_tensors):
+            name = self.engine.get_tensor_name(i)
+            dtype = trt.nptype(self.engine.get_tensor_dtype(name))
+            shape = self.engine.get_tensor_shape(name)
+            
+            if -1 in shape:
+                shape = self.context.get_tensor_shape(name)
+                
             size = trt.volume(shape) * np.dtype(dtype).itemsize
-            
-            # Allocate device memory
             device_mem = cuda.mem_alloc(size)
-            self.bindings.append(int(device_mem))
+            self.context.set_tensor_address(name, int(device_mem))
             
-            if self.engine.binding_is_input(i):
-                self.inputs.append({'host': cuda.pagelocked_empty(trt.volume(shape), dtype), 
-                                    'device': device_mem, 'shape': shape})
+            is_input = self.engine.get_tensor_mode(name) == trt.TensorIOMode.INPUT
+            
+            binding = {
+                "name": name,
+                "host": cuda.pagelocked_empty(trt.volume(shape), dtype),
+                "device": device_mem,
+                "shape": shape,
+                "dtype": dtype
+            }
+            
+            if is_input:
+                self.inputs.append(binding)
             else:
-                self.outputs.append({'host': cuda.pagelocked_empty(trt.volume(shape), dtype), 
-                                     'device': device_mem, 'shape': shape})
+                self.outputs.append(binding)
 
     def predict(self, input_data):
-        # 1. Copy image data to pagelocked host memory
-        np.copyto(self.inputs[0]['host'], input_data.ravel())
-        
-        # 2. Transfer input data to GPU (Host to Device)
-        cuda.memcpy_htod_async(self.inputs[0]['device'], self.inputs[0]['host'], self.stream)
-        
-        # 3. Run Inference on GPU
-        self.context.execute_async_v2(bindings=self.bindings, stream_handle=self.stream.handle)
-        
-        # 4. Transfer predictions back to CPU (Device to Host)
-        for out in self.outputs:
-            cuda.memcpy_dtoh_async(out['host'], out['device'], self.stream)
+        # 2. PUSH the CUDA context into the current worker thread
+        self.ctx.push()
+        try:
+            input_data = np.ascontiguousarray(input_data)
             
-        self.stream.synchronize()
-        
-        # Return a list of output numpy arrays
-        return [out['host'].reshape(out['shape']) for out in self.outputs]
+            np.copyto(self.inputs[0]['host'], input_data.ravel())
+            cuda.memcpy_htod_async(self.inputs[0]['device'], self.inputs[0]['host'], self.stream)
+            
+            self.context.execute_async_v3(stream_handle=self.stream.handle)
+            
+            for out in self.outputs:
+                cuda.memcpy_dtoh_async(out['host'], out['device'], self.stream)
+                
+            self.stream.synchronize()
+            
+            return [out['host'].reshape(out['shape']) for out in self.outputs]
+        finally:
+            # 3. POP the context so we don't leak memory or block other threads
+            self.ctx.pop()
