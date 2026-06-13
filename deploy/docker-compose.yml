@@ -13,6 +13,7 @@ services:
       - /home/jetson/dms_project/models:/app/models
       - /var/lib/nvpmodel/status:/var/lib/nvpmodel/status:ro
       - /etc/nvpmodel.conf:/etc/nvpmodel.conf:ro
+      - /home/jetson/dms_project/src:/app/src
     ports:
       - "8000:8000" # Exposes the Healthcheck to the Jetson host
       - "5000:5000" # Exposes the Video Stream so you can view it in your browser
@@ -25,4 +26,6 @@ services:
       - "/dev/i2c-0:/dev/i2c-0"
       - "/dev/video0:/dev/video0"
       - "/dev/snd:/dev/snd"
+    group_add :
+      - audio
     restart: "no"

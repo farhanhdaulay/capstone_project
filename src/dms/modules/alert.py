@@ -148,7 +148,7 @@ class AlertController:
         self._set_pin(self._pin_vib, False)
         self._stop_vib.clear()
 
-    def _beep_siren(self, sample_rate: int = 44100) -> None:
+    def _beep_siren(self, sample_rate: int = 8000) -> None:
         """Two-tone siren using sounddevice -- no files needed."""
         duration = 0.35
         for freq in (1200.0, 800.0):
@@ -166,7 +166,7 @@ class AlertController:
         """Generate a two-tone siren WAV file and return its path."""
         import wave
         import struct
-        sample_rate = 44100
+        sample_rate = 8000
         duration    = 0.4
         tones       = [1200.0, 800.0]
         repeats     = 3
@@ -177,7 +177,7 @@ class AlertController:
                 n = int(sample_rate * duration)
                 for i in range(n):
                     env = min(i, n - i, 500) / 500.0
-                    val = env * 0.8 * math.sin(2 * math.pi * freq * i / sample_rate)
+                    val = env * 0.2 * math.sin(2 * math.pi * freq * i / sample_rate)
                     frames.append(struct.pack("<h", int(val * 32767)))
     
         with wave.open(path, "w") as wf:
@@ -211,15 +211,25 @@ class AlertController:
                     logger.error("sounddevice error: %s", exc)
     
             if alert_wav and os.path.isfile(alert_wav):
-                subprocess.run(
+                # THE FIX: Use Popen to run aplay so we can actively kill it
+                proc = subprocess.Popen(
                     ["aplay", "-q", alert_wav],
-                    stderr=subprocess.DEVNULL, check=False
+                    stderr=subprocess.DEVNULL
                 )
+                
+                # Actively wait for aplay to finish, checking the stop switch every 50ms
+                while proc.poll() is None:
+                    if self._stop_sound.is_set():
+                        proc.kill()  # Assassinate the aplay process instantly!
+                        proc.wait()
+                        break
+                    time.sleep(0.05)
             else:
                 time.sleep(0.8)
 
     def _stop_sound_alarm(self) -> None:
         self._stop_sound.set()
+        os.system("killall -9 aplay 2>/dev/null")
         if self._sound_thread and self._sound_thread.is_alive():
             self._sound_thread.join(timeout=2.0)
         if _SOUND_OK and not self._mock:
@@ -227,7 +237,6 @@ class AlertController:
                 sd.stop()
             except Exception:
                 pass
-        self._stop_sound.clear()
 
     def set_normal(self) -> None:
         """NORMAL: green LED on, all actuators off."""
@@ -266,9 +275,13 @@ class AlertController:
         self._stop_vib.clear()
         self._vib_thread = threading.Thread(target=self._vib_continuous, daemon=True)
         self._vib_thread.start()
+        if self._vib_thread is None or not self._vib_thread.is_alive():
+            self._vib_thread = threading.Thread(target=self._vib_continuous, daemon=True)
+            self._vib_thread.start()
         self._stop_sound.clear()
-        self._sound_thread = threading.Thread(target=self._play_sound_loop, daemon=True)
-        self._sound_thread.start()
+        if self._sound_thread is None or not self._sound_thread.is_alive():
+            self._sound_thread = threading.Thread(target=self._play_sound_loop, daemon=True)
+            self._sound_thread.start()
         logger.info("[ALERT] CRITICAL -- red LED ON + vibration + buzzer")
     def set_state(self, state: AlertState) -> None:
         """Set state from enum value."""

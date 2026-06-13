@@ -43,7 +43,7 @@ YOLO_PT         = os.path.join(MODEL_DIR, "yolo26n.pt")     # fallback PyTorch w
 CAMERA_SOURCE = "/dev/video0"          # "csi" for IMX219, 0 for USB
 CAMERA_WIDTH  = 640
 CAMERA_HEIGHT = 320
-CAMERA_FPS    = 30
+CAMERA_FPS    = 25
 CAMERA_FLIP   = 0              # nvvidconv flip-method (0=none, 2=180 deg)
 
 # ---------------------------------------------------------------------------

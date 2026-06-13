@@ -367,7 +367,8 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
         flip=cfg.CAMERA_FLIP,
     )
     camera.open()
-
+    
+    logger.info("Loading Face, PFLD, and HeadPose models on main thread...")
     face_det = None
     if _FaceDetector:
         try:
@@ -396,8 +397,10 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
             head_pose = _HeadPoseEstimator(model_path=cfg.HEAD_POSE_MODEL)
         except Exception as exc:
             logger.warning("HeadPoseEstimator init failed: %s", exc)
-
+    
+    # 2. Leave phone_det as None (It MUST load in the background thread)
     phone_det = None
+    logger.info("Loading YOLO Phone Detector on inference thread...")
     if _PhoneDetector:
         try:
             phone_det = _PhoneDetector(
@@ -471,10 +474,14 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
         Dedicated GPU thread that consumes frames from the input queue, processes 
         heavy AI workloads (YOLO, PFLD, HeadPose), and publishes telemetry to the output queue.
         """
+        
+        # 3. Load YOLO exclusively on the background thread to isolate PyTorch
+
         _dist_consec_t = 0
         INFER_SCALE = 0.5
         _infer_frame_count = 0
         _last_bbox = None
+        
         while True:
             try:
                 frame_full, small_f = _infer_input.get()
@@ -550,7 +557,7 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
                   _infer_output.put_nowait((out, small_b))
                 except _queue.Full:
                   pass
-
+              
     threading.Thread(target=_inference_worker, daemon=True,
                  name="gpu-inference-worker").start()
                  
@@ -615,11 +622,11 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
             
             # Since phone detector modifies its own state internally, 
             # we draw the last detected box if the event is active
-            if phone_det and event.phone:
-                try:
-                    phone_det.draw(frame)
-                except Exception:
-                    pass
+#            if phone_det and event.phone:
+#                try:
+#                    phone_det.draw(frame)
+#                except Exception:
+#                    pass
 
             if imu:
                 try:
