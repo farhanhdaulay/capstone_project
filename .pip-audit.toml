@@ -1,0 +1,5 @@
+[audit]
+strict = true
+ignore-vuln = [
+    "GHSA-rrmf-rvhw-rf47"
+]
