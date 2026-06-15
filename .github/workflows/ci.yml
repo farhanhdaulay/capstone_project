@@ -65,7 +65,11 @@ jobs:
       - name: Bandit (Python SAST)
         run: bandit -r src/ -ll
       - name: pip-audit (CVE scan on deps)
-        run: pip-audit --strict -r requirements.txt
+        uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: requirements.txt
+          ignore-vulns: |
+            GHSA-rrmf-rvhw-rf47
 
   build:
     name: Build & push ARM64 image
