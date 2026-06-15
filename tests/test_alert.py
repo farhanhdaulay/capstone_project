@@ -298,15 +298,16 @@ class TestStopHelpers:
                     ac._stop_vibration()
                     spy.assert_any_call(ac._pin_vib, False)
 
-    def test_stop_sound_clears_event(self):
+    def test_stop_sound_sets_event(self):
         with patch(_THREAD_PATH) as MockThread, \
-             patch(_SLEEP_PATH):
+             patch(_SLEEP_PATH), \
+             patch(_OS_SYS_PATH):  # Mocks the new killall command
             MockThread.return_value = MagicMock()
             with _make_ac() as ac:
                 ac.set_critical()
                 ac._stop_sound_alarm()
-                # After stop the event should be cleared (ready for reuse)
-                assert not ac._stop_sound.is_set()
+                # Because of our new logic, the event stays set to signal termination
+                assert ac._stop_sound.is_set()
 
 
 # ---------------------------------------------------------------------------
@@ -365,17 +366,20 @@ class TestInternalLoops:
         stop_ev = threading.Event()
         call_count = 0
     
-        # Accept *args and **kwargs because subprocess.run signature is different
-        def _subprocess_side_effect(*args, **kwargs):
+        # Return a mock process object because we upgraded to Popen
+        def _popen_side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             stop_ev.set()  # Kills the loop
+            mock_proc = MagicMock()
+            mock_proc.poll.return_value = 0  # Simulates the audio finishing instantly
+            return mock_proc
     
-        mock_gpio = MagicMock()                                        
+        mock_gpio = MagicMock()
         with patch("dms.modules.alert._SOUND_OK", False), \
              patch("dms.modules.alert._GPIO_OK", True),\
              patch("dms.modules.alert.GPIO", mock_gpio, create=True),\
-             patch("dms.modules.alert.subprocess.run", side_effect=_subprocess_side_effect), \
+             patch("dms.modules.alert.subprocess.Popen", side_effect=_popen_side_effect), \
              patch(_SLEEP_PATH):
             with _make_ac(sound_file=str(wav)) as ac:
                 ac._mock        = False
