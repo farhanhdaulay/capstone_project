@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Farhan Hikmatullah Daulay - 611451002
-# Tatung University — I4210 AI????
+# Tatung University â€” I4210 AI????
 # src/dms/modules/pfld.py
 """
 PFLD landmark detector - EAR and MAR computation.
