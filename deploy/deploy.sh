@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
-# Copyright (c) 2026 Kishore Sridhar & Farhan Hikmatullah Daulay
-# Tatung University 14210 AI????
+#!/usr/bin/env python3
+# Copyright (c) 2026 Kishore Sridhar - 611451003
+# Tatung University — I4210 AI????
 # deploy/deploy.sh — pull tag, set nvpmodel, restart compose, healthcheck
 
 set -euo pipefail

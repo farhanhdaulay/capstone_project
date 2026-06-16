@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 Farhan Hikmatullah Daulay - 611451002
+# Tatung University — I4210 AI????
+
 """
 phone.py - Cell-phone distraction detector.
 

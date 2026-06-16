@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 Farhan Hikmatullah Daulay - 611451002
+# Tatung University — I4210 AI????
+
 # src/dms/live_stream.py
 # DMS Live Stream ??? view at http://<jetson-ip>:5000
 # Run: pdm run python src/dms/live_stream.py

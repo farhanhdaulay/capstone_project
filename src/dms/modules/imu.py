@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 Farhan Hikmatullah Daulay - 611451002
+# Tatung University — I4210 AI????
+
 """
 imu.py - MPU6050 I2C reader with dual-axis Kalman filter.
 

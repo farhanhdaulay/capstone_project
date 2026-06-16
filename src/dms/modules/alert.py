@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 Farhan Hikmatullah Daulay - 611451002
+# Tatung University — I4210 AI????
+
+
 # src/dms/modules/alert.py
 """
 alert.py -- 3-state alert actuator controller.

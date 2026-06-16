@@ -1,5 +1,6 @@
-# Copyright (c) 2026 Kishore Sridhar & Farhan Hikmatullah Daulay
-# Tatung University 14210 AI實務專題
+#!/usr/bin/env python3
+# Copyright (c) 2026 Kishore Sridhar - 611451003
+# Tatung University — I4210 AI實務專題
 # deploy/docker-compose.yml — production compose
 # Image tag injected via $IMAGE_TAG from deploy.sh
 
@@ -10,10 +11,10 @@ services:
     network_mode: host
     volumes:
       - /var/lib/capstone_project/logs:/app/logs
-      - /home/jetson/dms_project/models:/app/models
+      - ../models:/app/models
       - /var/lib/nvpmodel/status:/var/lib/nvpmodel/status:ro
       - /etc/nvpmodel.conf:/etc/nvpmodel.conf:ro
-      - /home/jetson/dms_project/src:/app/src
+      - ../src:/app/src
     ports:
       - "8000:8000" # Exposes the Healthcheck to the Jetson host
       - "5000:5000" # Exposes the Video Stream so you can view it in your browser

@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
-# Copyright (c) 2026 Kishore Sridhar & Farhan Hikmatullah Daulay
-# Tatung University 14210 AI實務專題
+#!/usr/bin/env python3
+# Copyright (c) 2026 Kishore Sridhar - 611451003
+# Tatung University — I4210 AI實務專題
 # deploy/healthcheck.sh — polls /healthz, requires 3 consecutive successes
 
 set -euo pipefail

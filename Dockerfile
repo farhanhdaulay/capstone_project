@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 Kishore Sridhar - 611451003
+# Tatung University — I4210 AI????
+
 FROM dustynv/pytorch:2.7-r36.4.0
 
 ENV DEBIAN_FRONTEND=noninteractive
