@@ -64,21 +64,37 @@ _Note: This project utilizes a direct-edge-actuation architecture rather than a 
 ## Project Layout
 
     dms_project/
+    +-- .github/workflows
+    |   +-- ci.yml
+    |   +-- deploy.yml
+    +-- deploy/
+    |   +-- deploy.sh
+    |   +-- docker-compose.yml
+    |   +-- healthcheck.sh
+    |   +-- power_profile.json
+    |   +-- rollback.sh
+    +-- models/
+    |   +-- 6drepnet360.engine
+    |   +-- pfld_106_lite.engine
+    |   +-- yolo26n.engine
+    +-- scripts/
+    |   +-- parse_tegrastats.py
+    |   +-- utilization.csv
     +-- src/dms/
     |   +-- main.py           Master loop
     |   +-- live_stream.py
     |   +-- healthcheck.py
     |   +-- config.py         All thresholds & pin numbers  <- edit here
     |   +-- modules/
+    |       +-- alert.py          LED / motor / buzzer controller
+    |       +-- calibrator.py     initial 10s calibration
     |       +-- camera.py         USB capture
     |       +-- face_detector.py  ONNX face detector + Haar fallback
-    |       +-- pfld.py           PFLD-106-lite -> EAR / MAR
     |       +-- head_pose.py      6DRepNet360 -> yaw / pitch
+    |       +-- pfld.py           PFLD-106-lite -> EAR / MAR
     |       +-- phone.py          YOLOv26n TensorRT -> phone detection
-    |       +-- alert.py          LED / motor / buzzer controller
     |       +-- state_machine.py  NORMAL / WARNING / CRITICAL FSM
     |       +-- trt_backend.py    having tensorRT engine to load the models
-    |       +-- calibrator.py     initial 10s calibration
     +-- models/
     |   +-- pfld_106_lite.onnx
     |   +-- pfld_106_lite.engine
@@ -87,21 +103,19 @@ _Note: This project utilizes a direct-edge-actuation architecture rather than a 
     |   +-- yolo26n.engine
     |   +-- yolo26n.pt
     +-- tests/
-        +-- integration/
-                test_jetson_e2e.py
-        +-- test_state_machine.py
-        +-- test_camera.py
-        +-- test_pfld.py
-        +-- test_headpose.py
-        +-- test_config.py
-        +-- test_calibrator.py
-        +-- test_face_detector.
-        +-- test_phone.py
-        +-- test_alert.py
-        +-- test_dms_all.py
-        +-- test_healthcheck.py
-     +-- deploy/
-    +-- scripts/
+    |   +-- integration/
+    |           test_jetson_e2e.py
+    |   +-- test_state_machine.py
+    |   +-- test_camera.py
+    |   +-- test_pfld.py
+    |   +-- test_headpose.py
+    |   +-- test_config.py
+    |   +-- test_calibrator.py
+    |   +-- test_face_detector.
+    |   +-- test_phone.py
+    |   +-- test_alert.py
+    |   +-- test_dms_all.py
+    |   +-- test_healthcheck.py
 
 ---
 
