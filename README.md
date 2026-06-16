@@ -1,4 +1,4 @@
-# Capstone Project: Driver Monitoring System (Smart Car AI)
+# Edge-AI Driver Monitoring System for Real-Time Drowsiness, Yawning, and Distraction Detection Using PFLD, 6DRepNet, and Yolov26n on NVIDIA Jetson Orin Nano Super by Farhan Hikmatullah Daulay and Kishore Sridhar at Tatung University
 
 ## Project Overview
 
@@ -30,9 +30,9 @@ Real-time drowsiness, yawning, and distraction detection running on a
 | SBC             | Jetson Orin Nano Super | –                  |
 | Camera          | USB Camera             |
 | LED Green       | –                      | GPIO pin 7         |
-| LED Yellow      | –                      | GPIO pin 29        |
-| LED Red         | –                      | GPIO pin 27        |
-| Vibration Motor | via NPN/MOSFET         | pin 2              |
+| LED Yellow      | –                      | GPIO pin 31        |
+| LED Red         | –                      | GPIO pin 29        |
+| Vibration Motor | via NPN/MOSFET         | GPIO pin 33        |
 | USB Sound Card  | –                      | ALSA / sounddevice |
 
 ---
@@ -95,27 +95,25 @@ _Note: This project utilizes a direct-edge-actuation architecture rather than a 
     |       +-- phone.py          YOLOv26n TensorRT -> phone detection
     |       +-- state_machine.py  NORMAL / WARNING / CRITICAL FSM
     |       +-- trt_backend.py    having tensorRT engine to load the models
-    +-- models/
-    |   +-- pfld_106_lite.onnx
-    |   +-- pfld_106_lite.engine
-    |   +-- 6drepnet360.onnx
-    |   +-- 6drepnet360.engine
-    |   +-- yolo26n.engine
-    |   +-- yolo26n.pt
     +-- tests/
     |   +-- integration/
-    |           test_jetson_e2e.py
-    |   +-- test_state_machine.py
-    |   +-- test_camera.py
-    |   +-- test_pfld.py
-    |   +-- test_headpose.py
-    |   +-- test_config.py
-    |   +-- test_calibrator.py
-    |   +-- test_face_detector.
-    |   +-- test_phone.py
+    |       +-- sample_frame.jpg
+    |       +-- test_jetson_e2e.py
     |   +-- test_alert.py
-    |   +-- test_dms_all.py
+    |   +-- test_calibrator.py
+    |   +-- test_camera.py
+    |   +-- test_config.py
+    |   +-- test_face_detector.py
+    |   +-- test_head_pose.py
     |   +-- test_healthcheck.py
+    |   +-- test_pfld.py
+    |   +-- test_phone.py
+    |   +-- test_state_machine.py
+    +-- Dockerfile
+    +-- README.md
+    +-- pyproject.toml
+    +-- requirements.txt
+    +-- test_video.mp4
 
 ---
 
@@ -207,12 +205,11 @@ Key values to tune for your driver:
 | Constant             | Default | Meaning                               |
 | -------------------- | ------- | ------------------------------------- |
 | `EAR_THRESHOLD`      | 0.20    | Eye Aspect Ratio -> drowsy below this |
-| `EAR_CONSEC_FRAMES`  | 15      | Frames EAR must stay low              |
-| `MAR_THRESHOLD`      | 0.55    | Mouth Aspect Ratio -> yawn above this |
+| `EAR_CONSEC_FRAMES`  | 3       | Frames EAR must stay low              |
+| `MAR_THRESHOLD`      | 0.65    | Mouth Aspect Ratio -> yawn above this |
 | `YAW_THRESHOLD`      | 30.0    | Head turn left/right limit            |
 | `PITCH_THRESHOLD`    | 20.0    | Head up/down limit                    |
 | `WARNING_DURATION_S` | 2.0     | Seconds in WARNING -> CRITICAL        |
-| `IMU_ENABLED`        | False   | Set `True` when MPU6050 is wired      |
 | `ALERT_MOCK`         | True    | Set `False` for real GPIO             |
 
 ---
@@ -239,14 +236,11 @@ Run individual module tests first before the full integration test:
     # Camera
     pdm run python tests/test_camera.py
 
-    # IMU (SIMULATION if smbus2/hardware absent)
-    pdm run python tests/test_imu.py --duration 10
-
     # PFLD landmarks
     pdm run python tests/test_pfld.py
 
     # Head pose
-    pdm run python tests/test_headpose.py
+    pdm run python tests/test_head_pose.py
 
     # Phone detection
     pdm run python tests/test_phone.py
@@ -274,9 +268,9 @@ Run individual module tests first before the full integration test:
 
 | State    | Green LED | Yellow LED | Red LED |  Vibration  |   Sound    |
 | -------- | :-------: | :--------: | :-----: | :---------: | :--------: |
-| NORMAL   |    ON     |    off     |   off   |     off     |   silent   |
-| WARNING  |    off    |     ON     |   off   | short pulse |   silent   |
-| CRITICAL |    off    |    off     |   ON    | continuous  | alarm loop |
+| NORMAL   |    on     |    off     |   off   |     off     |   silent   |
+| WARNING  |    off    |    on      |   off   | short pulse |   silent   |
+| CRITICAL |    off    |    off     |   on    | continuous  | alarm loop |
 
 ---
 
@@ -284,18 +278,13 @@ Run individual module tests first before the full integration test:
 
     Jetson 40-pin Header
     --------------------
-    Pin  1 (3.3 V) ----------- MPU6050 VCC
-    Pin  3 (I2C1 SDA) ------- MPU6050 SDA
-    Pin  5 (I2C1 SCL) ------- MPU6050 SCL
-    Pin  6 (GND) ------------ MPU6050 GND
-
-    Pin 32 (BCM 12) --[330 O]-- Green  LED anode  -> GND
-    Pin 36 (BCM 16) --[330 O]-- Yellow LED anode  -> GND
-    Pin 12 (BCM 18) --[330 O]-- Red    LED anode  -> GND
-    Pin 16 (BCM 23) --[base]--- NPN transistor -> vibration motor -> 5 V
-                                 (collector -> motor +, emitter -> GND)
-
-    USB Sound Card ------------ USB port -> Speaker / Buzzer
+    Pin 7  -- Green  LED anode  -> GND
+    Pin 31 -- Yellow LED anode  -> GND
+    Pin 29 -- Red    LED anode  -> GND
+    Pin 33 -- MOSFET | -> Diode -> vibration motor -> 5 V
+                     | -> GND
+    USB Sound Card -- USB port -> Speaker / Buzzer
+    USB Camera     -- USB port -> Raw Frames
 
 > **Note** – Jetson BCM numbering may differ from Raspberry Pi.
 > Verify actual physical pin locations with `pinmux` or the Jetson
@@ -325,8 +314,6 @@ docker run -d \
 
 | Symptom | Fix |
 |---|---|
-| `smbus2` import error | `pip install smbus2 --break-system-packages` |
-| IMU reads all zeros | Check `i2cdetect -y -r 1`, verify SDA/SCL wiring |
 | GPIO permission denied | `sudo usermod -aG gpio $USER` then re-login |
 | No USB audio | `aplay -l` -> set `defaults.pcm.card` in `/etc/asound.conf` |
 | TensorRT engine fails | Rebuild with `model.export(format="engine")` on Jetson |
