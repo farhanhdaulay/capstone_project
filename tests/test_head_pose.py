@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Kishore Sridhar - 611451003
-# Tatung University — I4210 AI????
+# Tatung University â€” I4210 AI????
 
 """
 tests/test_head_pose.py
