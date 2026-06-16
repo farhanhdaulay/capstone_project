@@ -140,13 +140,20 @@ wget -O test_video.mp4 https://raw.githubusercontent.com/farhanhdaulay/capstone_
 ls -lh test_video.mp4
 ```
 
-**3. Run the simulation:**
+**3. Push the latest image:**
+
+```bash
+docker pull ghcr.io/farhanhdaulay/capstone_project:latest
+```
+
+**4. Run the simulation:**
 
 ```bash
 docker run -d \
   --name dms-core-sim \
   --runtime nvidia \
   --network host \
+  --env LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/tegra \
   -v $(pwd)/logs:/app/logs \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/test_video.mp4:/app/test_video.mp4 \
@@ -154,7 +161,32 @@ docker run -d \
   ghcr.io/farhanhdaulay/capstone_project:latest
 ```
 
-## Setup
+**5. Check the logs:(Run this command until the test video finishes)**
+
+```bash
+docker logs dms-core-sim
+```
+
+**6. Check the live video:(Optional - only run if all the hardwares are connected):**
+
+```bash
+docker rm -f dms-core-sim
+```
+
+```bash
+docker run -d \
+  --name dms-core-live \
+  --runtime nvidia \
+  --network host \
+  --privileged \
+  --device /dev/video0:/dev/video0 \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/models:/app/models \
+  -e CAMERA_SOURCE=/dev/video0 \
+  ghcr.io/farhanhdaulay/capstone_project:latest
+```
+
+## Setup without Docker
 
 ### 1 – Clone & initialise PDM
 
@@ -258,18 +290,18 @@ Run individual module tests first before the full integration test:
 
 ## Alert State Machine
 
-                            any_event sustained >= WARNING_DURATION_S
+                (any_event sustained >= WARNING_DURATION_S)
     NORMAL --------------------------------------------------> CRITICAL
-      ^        any_event appears                                   |
+      ^        (any_event appears)                                 |
       |   NORMAL ----------> WARNING ----------------------------> |
-      |                        |  event clears                     |
+      |                        |  (event clears)                   |
       +------------------------+                                   |
-      +----------------------------- event clears -----------------+
+      +----------------------------- (event clears) ---------------+
 
 | State    | Green LED | Yellow LED | Red LED |  Vibration  |   Sound    |
 | -------- | :-------: | :--------: | :-----: | :---------: | :--------: |
 | NORMAL   |    on     |    off     |   off   |     off     |   silent   |
-| WARNING  |    off    |    on      |   off   | short pulse |   silent   |
+| WARNING  |    off    |     on     |   off   | short pulse |   silent   |
 | CRITICAL |    off    |    off     |   on    | continuous  | alarm loop |
 
 ---
