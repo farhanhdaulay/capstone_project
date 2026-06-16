@@ -62,13 +62,14 @@ class Camera:
             pipeline   = _csi_pipeline(self.width, self.height, self.fps, self.flip)
             self._cap  = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
             
-        elif isinstance(self.source, str) and self.source.endswith(".mp4"):
-            # Intercept .mp4 files and force NVIDIA's GStreamer pipeline to decode them
+       elif isinstance(self.source, str) and self.source.endswith(".mp4"):
+            # Use 'videotestsrc' to test if GStreamer works at all
             gst_pipe = (
                 f"filesrc location={self.source} ! qtdemux ! h264parse ! "
                 "nvv4l2decoder ! nvvidconv ! video/x-raw, format=BGRx ! "
                 "videoconvert ! video/x-raw, format=BGR ! appsink"
             )
+            print(f"[Camera] Attempting GStreamer pipeline: {gst_pipe}")
             self._cap = cv2.VideoCapture(gst_pipe, cv2.CAP_GSTREAMER)
             
         else:
