@@ -657,8 +657,13 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
             _draw_overlay(frame, sm.state_name, event, fps)
             
             loop_end = time.perf_counter()
-            frame_latencies_ms.append((loop_end - loop_start) * 1000)
+            elapsed = loop_end - loop_start
+            sleep_time = max(0, (1.0 / cfg.CAMERA_FPS) - elapsed)
             
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            
+            frame_latencies_ms.append(elapsed * 1000)
             # 6. Stream and Display
             if stream:
                 _enqueue_frame(frame)
