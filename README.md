@@ -79,6 +79,7 @@ _Note: This project utilizes a direct-edge-actuation architecture rather than a 
     |   +-- yolo26n.engine
     +-- scripts/
     |   +-- parse_tegrastats.py
+    |   +-- tegrastats.log
     |   +-- utilization.csv
     +-- src/dms/
     |   +-- main.py           Master loop
