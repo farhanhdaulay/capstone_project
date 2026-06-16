@@ -63,18 +63,15 @@ class Camera:
             self._cap  = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
             
         elif isinstance(self.source, str) and self.source.endswith(".mp4"):
-            # Universal GStreamer pipeline - highly compatible
-            gst_pipe = (
-                f"filesrc location={self.source} ! "
-                "qtdemux ! "
-                "queue ! "
-                "decodebin ! "
-                "videoconvert ! "
-                "video/x-raw, format=BGR ! "
-                "appsink"
-            )
-            print(f"[Camera] Attempting Universal GStreamer pipeline: {gst_pipe}")
-            self._cap = cv2.VideoCapture(gst_pipe, cv2.CAP_GSTREAMER)
+            # 1. First, check if OpenCV can open it normally (FFmpeg backend)
+            print(f"[Camera] Attempting standard OpenCV capture: {self.source}")
+            self._cap = cv2.VideoCapture(self.source)
+            
+            # 2. If that failed, give it one more chance with a simple GStreamer sink
+            if not self._cap.isOpened():
+                print("[Camera] Standard capture failed, trying simple GStreamer sink...")
+                gst_pipe = f"filesrc location={self.source} ! decodebin ! videoconvert ! appsink"
+                self._cap = cv2.VideoCapture(gst_pipe, cv2.CAP_GSTREAMER)
             
         else:
             # Accept both integer index (0, 1) and device path ("/dev/video0")
