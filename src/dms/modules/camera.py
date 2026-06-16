@@ -61,6 +61,16 @@ class Camera:
         if self.source == "csi":
             pipeline   = _csi_pipeline(self.width, self.height, self.fps, self.flip)
             self._cap  = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+            
+        elif isinstance(self.source, str) and self.source.endswith(".mp4"):
+            # Intercept .mp4 files and force NVIDIA's GStreamer pipeline to decode them
+            gst_pipe = (
+                f"filesrc location={self.source} ! qtdemux ! h264parse ! "
+                "nvv4l2decoder ! nvvidconv ! video/x-raw, format=BGRx ! "
+                "videoconvert ! video/x-raw, format=BGR ! appsink"
+            )
+            self._cap = cv2.VideoCapture(gst_pipe, cv2.CAP_GSTREAMER)
+            
         else:
             # Accept both integer index (0, 1) and device path ("/dev/video0")
             src = self.source if isinstance(self.source, str) and self.source.startswith("/") \
