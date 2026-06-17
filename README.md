@@ -331,24 +331,6 @@ Run individual module tests first before the full integration test:
 
 ---
 
-## How to Demo (Simulation Mode)
-
-If you are grading this project on a machine without the custom Jetson GPIO pins, I2C sensors, or a USB camera connected, use this command to run a full demonstration.
-
-It safely bypasses the hardware requirements and runs the full TensorRT AI pipeline on a pre-recorded sample video:
-
-```bash
-docker run -d \
-  --name dms-core-sim \
-  --runtime nvidia \
-  --network host \
-  -v $(pwd)/logs:/app/logs \
-  -v $(pwd)/models:/app/models \
-  -v $(pwd)/test_video.mp4:/app/test_video.mp4 \
-  -e HEALTHZ_PORT=8000 \
-  ghcr.io/farhanhdaulay/capstone_project:latest
-
-
 ## Troubleshooting
 
 | Symptom | Fix |
@@ -359,3 +341,5 @@ docker run -d \
 | Low FPS (<15) | Reduce `CAMERA_WIDTH/HEIGHT`, enable TRT engine, use `--no-window` |
 | Face not detected | Improve lighting; lower `FACE_CONF_THRESHOLD` in config |
 ```
+## Disclaimer
+# During the integration test we are not mocking the camera, because this test is end to end test that checks the camera also. So while running the pytest locally, this integration test will fail without camera and hardware connection.
