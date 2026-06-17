@@ -1,6 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env bash
 # Copyright (c) 2026 Kishore Sridhar - 611451003
 # Tatung University — I4210 AI????
+
 # deploy/rollback.sh — revert to the previous deployed tag in <30s
 
 set -euo pipefail

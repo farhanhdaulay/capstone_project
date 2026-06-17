@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Farhan Hikmatullah Daulay - 611451002
-# Tatung University — I4210 AI????
+# Tatung University — I4210 AI實務專題
 
 """
 state_machine.py
@@ -24,7 +24,6 @@ class DMSEvent:
     yawning:     bool = False   # MAR above threshold for N frames
     distracted:  bool = False   # Head yaw/pitch beyond threshold
     phone:       bool = False   # Phone detected
-    imu_tilt:    bool = False   # IMU roll/pitch beyond threshold (optional)
 
     ear:    float = 0.0
     mar:    float = 0.0
@@ -34,7 +33,7 @@ class DMSEvent:
 
     @property
     def any_event(self) -> bool:
-        return self.drowsy or self.yawning or self.distracted or self.phone or self.imu_tilt
+        return self.drowsy or self.yawning or self.distracted or self.phone
 
     @property
     def active_labels(self) -> list[str]:
@@ -47,8 +46,6 @@ class DMSEvent:
             labels.append("DISTRACTED")
         if self.phone:      
             labels.append("PHONE")
-        if self.imu_tilt:   
-            labels.append("IMU_TILT")
         return labels
 
 class DMSState(Enum):

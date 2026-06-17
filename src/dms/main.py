@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Farhan Hikmatullah Daulay - 611451002
-# Tatung University — I4210 AI????
+# Tatung University — I4210 AI實務專題
 
 
 # src/dms/main.py
@@ -75,7 +75,6 @@ _PFLDLandmarker    = _safe_import("dms.modules.pfld",          "PFLDDetector")
 _draw_lm           = _safe_import("dms.modules.pfld",          "draw_landmarks")
 _HeadPoseEstimator = _safe_import("dms.modules.head_pose",     "HeadPoseEstimator")
 _PhoneDetector     = _safe_import("dms.modules.phone",         "PhoneDetector")
-_IMUReader         = _safe_import("dms.modules.imu",           "IMUReader")
 
 # ---------------------------------------------------------------------------
 # MJPEG stream
@@ -418,13 +417,6 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
         except Exception as exc:
             logger.warning("PhoneDetector init failed: %s", exc)
 
-    imu = None
-    if cfg.IMU_ENABLED and _IMUReader:
-        try:
-            imu = _IMUReader(bus_num=cfg.IMU_BUS, address=cfg.IMU_ADDRESS)
-        except Exception as exc:
-            logger.warning("IMUReader init failed: %s", exc)
-
     alert = AlertController(
         pin_green  = cfg.ALERT_GPIO_GREEN,
         pin_yellow = cfg.ALERT_GPIO_YELLOW,
@@ -624,22 +616,7 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
             # 5. Drawing & OSD
             if _draw_lm and res.get("landmarks"):
                 _draw_lm(frame, res["landmarks"])
-            
-            # Since phone detector modifies its own state internally, 
-            # we draw the last detected box if the event is active
-#            if phone_det and event.phone:
-#                try:
-#                    phone_det.draw(frame)
-#                except Exception:
-#                    pass
 
-            if imu:
-                try:
-                    roll, _ = imu.read()
-                    event.roll     = roll
-                    event.imu_tilt = abs(roll) > cfg.IMU_TILT_THRESHOLD
-                except Exception as exc:
-                    logger.debug("IMU error: %s", exc)
 
             sm.update(event)
 
@@ -696,8 +673,6 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
         sm.log_stats()
         alert.cleanup()
         camera.release()
-        if imu:
-            imu.close()
         if show_window:
             cv2.destroyAllWindows()
         logger.info("=== DMS stopped ===")

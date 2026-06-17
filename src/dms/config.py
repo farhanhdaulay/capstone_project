@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 Farhan Hikmatullah Daulay - 611451002
+# Tatung University — I4210 AI????
+
 # src/dms/config.py
 """
 Central configuration -- all thresholds, paths, and hardware settings.
@@ -97,14 +101,6 @@ ALERT_GPIO_YELLOW = 31     # GPIO01 -> yellow LED (WARNING)
 ALERT_GPIO_RED    = 29     # GPIO11 -> red    LED (CRITICAL)
 ALERT_GPIO_VIB    = 33     # GPIO13 -> vibration motor via 2N7000
 ALERT_MOCK        = False  # True = print only, no real GPIO
-
-# ---------------------------------------------------------------------------
-# IMU (MPU6050)
-# ---------------------------------------------------------------------------
-IMU_BUS            = 1       # I2C bus 1 (SDA=Pin3, SCL=Pin5)
-IMU_ADDRESS        = 0x68    # default MPU6050 I2C address
-IMU_ENABLED        = True
-IMU_TILT_THRESHOLD = 45.0    # degrees roll before flagging imu_tilt
 
 # ---------------------------------------------------------------------------
 # Browser MJPEG stream
