@@ -19,7 +19,9 @@ Options:
 """
 from __future__ import annotations
 
+import atexit
 import argparse
+import csv
 import logging
 import os
 import queue
@@ -42,6 +44,7 @@ import dms.config as cfg
 from dms.modules.camera import Camera
 from dms.healthcheck import start_in_thread as start_healthz
 
+performance_metrics = []
 # Allow `python src/dms/main.py` as a fallback
 if __name__ == "__main__" and __package__ is None:
     _src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -144,6 +147,19 @@ def _encoder_thread(quality: int) -> None:
                 _latest_jpeg = buf.tobytes()
             _jpeg_event.set()
 
+def save_performance_csv(data, log_dir):
+    """Save the performance csv file"""
+    if not data: 
+        return
+    # Use the same timestamp logic as your log files
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    csv_path = os.path.join(log_dir, f"performance_{stamp}.csv")
+    
+    with open(csv_path, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=['timestamp', 'latency_ms', 'fps'])
+        writer.writeheader()
+        writer.writerows(data)
+    print(f"\n[INFO] Performance data saved to {csv_path}")
 def _mjpeg_server(port: int) -> None:
     """
     Runs a lightweight HTTP server to stream MJPEG payloads to connected browser clients.
@@ -332,7 +348,7 @@ def _draw_overlay(frame: np.ndarray, state_name: str,
 # Main loop
 # ---------------------------------------------------------------------------
 
-def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None:
+def run(show_window: bool = True, stream: bool = True, port: int = 5000, log_dir: str = cfg.LOG_DIR) -> None:
     """
     Initializes hardware peripherals, starts background GPU inference workers, 
     and executes the primary Driver Monitoring System asynchronous loop.
@@ -373,6 +389,8 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
     camera.open()
     
     logger.info("Loading Face, PFLD, and HeadPose models on main thread...")
+    # Register atexit to save CSV on crash/exit
+    atexit.register(save_performance_csv, performance_metrics, log_dir)
     face_det = None
     if _FaceDetector:
         try:
@@ -636,6 +654,13 @@ def run(show_window: bool = True, stream: bool = True, port: int = 5000) -> None
             loop_end = time.perf_counter()
             elapsed = loop_end - loop_start
             sleep_time = max(0, (1.0 / cfg.CAMERA_FPS) - elapsed)
+            # --- COLLECT METRICS ---
+            latency_ms = elapsed * 1000
+            performance_metrics.append({
+                'timestamp': datetime.now().isoformat(),
+                'latency_ms': round(latency_ms, 2),
+                'fps': round(1.0 / (elapsed + 1e-6), 2)
+            })
             
             if sleep_time > 0:
                 time.sleep(sleep_time)
@@ -704,6 +729,7 @@ def main() -> None:
         show_window = not args.no_window,
         stream      = not args.no_stream,
         port        = args.port,
+        log_dir     = args.log_dir
     )
 
 if __name__ == "__main__":
