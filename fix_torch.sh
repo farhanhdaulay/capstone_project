@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) 2026 Kishore Sridhar - 611451003
-# Tatung University � I4210 I4210 AI????
+# Tatung University — I4210 AI實務專題
 
 echo "=== Cleaning venv torch (keeping system CUDA torch) ==="
 VENV_SITE=~/dms_project/.venv/lib/python3.10/site-packages

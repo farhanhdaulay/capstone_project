@@ -168,6 +168,12 @@ docker run -d \
 docker logs dms-core-sim
 ```
 
+or
+
+```bash
+ docker logs -f dms-smoke-test
+```
+
 **6. Check the live video:(Optional - only run if all the hardwares are connected):**
 
 ```bash

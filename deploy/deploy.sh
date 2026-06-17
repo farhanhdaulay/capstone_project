@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Copyright (c) 2026 Kishore Sridhar - 611451003
-# Tatung University — I4210 AI????
+# Tatung University â€” I4210 AIå¯¦å‹™å°ˆé¡Œ
 
-# deploy/deploy.sh — pull tag, set nvpmodel, restart compose, healthcheck
+# deploy/deploy.sh - pull tag, set nvpmodel, restart compose, healthcheck
 
 set -euo pipefail
 
@@ -45,7 +45,7 @@ if [ -f "$STATE_DIR/deployed.txt" ]; then
     echo "$PREV" >> "$STATE_DIR/deployed.txt.history"
     echo "[deploy] Previous tag: $PREV (saved for rollback)"
 else
-    echo "[deploy] First deploy — initializing state"
+    echo "[deploy] First deploy ï¿½ initializing state"
     echo "$TAG" >> "$STATE_DIR/deployed.txt.history"
 fi
 
@@ -58,9 +58,9 @@ docker compose -f "$COMPOSE_FILE" up -d --force-recreate
 echo "[deploy] Waiting 25s for app to initialize..."
 sleep 25
 
-# 4. Healthcheck — rollback on failure
+# 4. Healthcheck ï¿½ rollback on failure
 if ! bash "$(dirname "$0")/healthcheck.sh"; then
-    echo "[deploy] Healthcheck failed — rolling back"
+    echo "[deploy] Healthcheck failed ï¿½ rolling back"
     if [ -x "$(dirname "$0")/rollback.sh" ]; then
         bash "$(dirname "$0")/rollback.sh"
     else
