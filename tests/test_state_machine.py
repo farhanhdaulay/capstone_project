@@ -48,12 +48,12 @@ def _make_sm(warning_dur=2.0, critical_dur=3.0, log_interval=1.0):
 
 
 def _event(drowsy=False, yawning=False, distracted=False,
-           phone=False, imu_tilt=False,
+           phone=False,
            ear=0.3, mar=0.3, yaw=0.0, pitch=0.0, roll=0.0):
     from dms.modules.state_machine import DMSEvent
     return DMSEvent(
         drowsy=drowsy, yawning=yawning, distracted=distracted,
-        phone=phone, imu_tilt=imu_tilt,
+        phone=phone,
         ear=ear, mar=mar, yaw=yaw, pitch=pitch, roll=roll,
     )
 
@@ -74,7 +74,7 @@ class TestDMSEvent:
     def test_all_flags_any_event(self):
         from dms.modules.state_machine import DMSEvent
         e = DMSEvent(drowsy=True, yawning=True, distracted=True,
-                     phone=True, imu_tilt=True)
+                     phone=True)
         assert e.any_event is True
 
     def test_active_labels_empty_when_no_event(self):
@@ -90,9 +90,9 @@ class TestDMSEvent:
 
     def test_all_active_labels(self):
         e = _event(drowsy=True, yawning=True, distracted=True,
-                   phone=True, imu_tilt=True)
+                   phone=True)
         assert set(e.active_labels) == {
-            "DROWSY", "YAWNING", "DISTRACTED", "PHONE", "IMU_TILT"
+            "DROWSY", "YAWNING", "DISTRACTED", "PHONE"
         }
 
 
